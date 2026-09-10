@@ -1,0 +1,6 @@
+{
+  "name": "Femisayo Autos",
+  "description": "Femisayo Autos is an auto repair shop and mechanical services workshop in Eti-Osa, Lekki, Lagos (CAC BN-2641123). Online booking, car sales showroom, parts, and garage tracking.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
