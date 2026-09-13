@@ -13,7 +13,6 @@ import {
   Sparkles,
   Award
 } from 'lucide-react';
-import { useCurrency } from '../context/CurrencyContext';
 
 interface HeroBannerProps {
   onSelectFitment: (fitment: { year: string; make: string; model: string }) => void;
@@ -43,7 +42,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   onExploreCarsClick,
   onExplorePartsClick
 }) => {
-  const { formatPrice } = useCurrency();
   const [selectedYear, setSelectedYear] = useState('2024');
   const [selectedMake, setSelectedMake] = useState('Toyota');
   const [selectedModel, setSelectedModel] = useState('Camry');
@@ -75,22 +73,26 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   return (
     <div className="relative w-full bg-[#0a0c10] overflow-hidden border-b border-zinc-800">
       
-      {/* Background Hero Image with Radial Gradient Vignette */}
+      {/* Background Hero Video with Radial Gradient Vignette */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src="/images/BMW m4 competition.jpg" 
-          alt="Performance Vehicle Workshop" 
-          className="w-full h-full object-cover object-center opacity-25 filter contrast-125 saturate-110"
+        <video
+          src="/videos/VID_20260913_182007_234.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/images/BMW m4 competition.jpg"
+          className="w-full h-full object-cover object-center opacity-80 filter contrast-125 saturate-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0c10] via-[#0a0c10]/85 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0c10] via-transparent to-[#0a0c10]/80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0c10] via-[#0a0c10]/55 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0c10] via-transparent to-[#0a0c10]/50" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-12 lg:pt-20 lg:pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="grid grid-cols-1 gap-8 lg:gap-12 items-center">
           
           {/* Left Hero Content */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/60 border border-red-600/40 text-red-400 text-xs font-semibold tracking-wider uppercase">
               <Award className="w-3.5 h-3.5" />
               <span>Femisayo Autos • CAC Reg: BN-2641123 • Eti-Osa, Lekki, Lagos</span>
@@ -216,58 +218,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               </div>
             </div>
 
-          </div>
-
-          {/* Right Showcase Card with Featured Vehicle & Best Selling Component */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden border border-zinc-700/80 bg-gradient-to-b from-zinc-800/80 via-zinc-900 to-zinc-950 p-1 shadow-2xl">
-              
-              {/* Image Preview Container */}
-              <div className="relative h-56 sm:h-72 w-full rounded-2xl overflow-hidden group">
-                <img 
-                  src="/images/2023 Toyota Land Cruiser Prado.jpg" 
-                  alt="Featured Toyota Land Cruiser Prado" 
-                  className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 left-3 bg-red-600 text-white text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider">
-                  Featured Vehicle
-                </div>
-                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-zinc-200 text-xs font-mono font-bold px-2.5 py-1 rounded-md border border-white/10">
-                  {formatPrice(74900)}
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
-                
-                <div className="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-4 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="text-white font-bold text-base sm:text-lg font-mono truncate">2023 Toyota Land Cruiser Prado</h3>
-                    <p className="text-zinc-400 text-[11px] sm:text-xs truncate">2.8L Turbo-Diesel • 4x4 • 7-Seater</p>
-                  </div>
-                  <button
-                    onClick={onExploreCarsClick}
-                    className="bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shrink-0"
-                  >
-                    View Car
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Spec Highlights Bar */}
-              <div className="p-3 sm:p-4 grid grid-cols-3 gap-2 text-center">
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-2 sm:p-2.5">
-                  <div className="text-yellow-400 font-mono font-bold text-base sm:text-lg">4.4★</div>
-                  <div className="text-[10px] sm:text-[11px] text-zinc-400">8 Reviews</div>
-                </div>
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-2 sm:p-2.5">
-                  <div className="text-red-400 font-mono font-bold text-xs sm:text-sm leading-5 sm:leading-6 truncate">BN-2641123</div>
-                  <div className="text-[10px] sm:text-[11px] text-zinc-400">CAC Registered</div>
-                </div>
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-2 sm:p-2.5">
-                  <div className="text-emerald-400 font-mono font-bold text-base sm:text-lg">2 Bays</div>
-                  <div className="text-[10px] sm:text-[11px] text-zinc-400">Lekki &amp; Annex</div>
-                </div>
-              </div>
-
-            </div>
           </div>
 
         </div>

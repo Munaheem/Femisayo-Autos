@@ -45,6 +45,7 @@ import { PaymentGatewayModal } from './components/PaymentGatewayModal';
 import { AdminPortal } from './components/AdminPortal';
 import { MyGaragePortal } from './components/MyGaragePortal';
 import { LoginPage } from './components/LoginPage';
+import { AboutPage } from './components/AboutPage';
 import { api } from './services/api';
 import { useCurrency } from './context/CurrencyContext';
 import { 
@@ -106,7 +107,7 @@ const FEATURED_SERVICE_ORDER = [
 // --- Hash-based routing (no external router needed) ---
 // Each tab maps to a URL hash so the browser back/forward buttons and deep
 // links work. The backend engineer can later swap this for real routes.
-type AppTab = 'home' | 'services' | 'cars' | 'parts' | 'garage' | 'admin';
+type AppTab = 'home' | 'services' | 'cars' | 'parts' | 'garage' | 'admin' | 'about';
 
 const TAB_TO_HASH: Record<AppTab, string> = {
   home: '#/',
@@ -114,12 +115,20 @@ const TAB_TO_HASH: Record<AppTab, string> = {
   cars: '#/cars',
   parts: '#/parts',
   garage: '#/garage',
-  admin: '#/admin'
+  admin: '#/admin',
+  about: '#/about'
 };
 
 const parseHash = (): AppTab => {
   const raw = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-  if (raw === 'services' || raw === 'cars' || raw === 'parts' || raw === 'garage' || raw === 'admin') {
+  if (
+    raw === 'services' ||
+    raw === 'cars' ||
+    raw === 'parts' ||
+    raw === 'garage' ||
+    raw === 'admin' ||
+    raw === 'about'
+  ) {
     return raw;
   }
   return 'home';
@@ -1301,6 +1310,15 @@ export default function App() {
             onSendPushNotification={handleTriggerPushNotification}
           />
         )}
+
+        {/* ABOUT TAB */}
+        {activeTab === 'about' && (
+          <AboutPage
+            onBookService={() => navigateTo('services')}
+            onExploreCars={() => navigateTo('cars')}
+            onExploreParts={() => navigateTo('parts')}
+          />
+        )}
       </main>
 
       {/* Cart Drawer */}
@@ -1396,6 +1414,11 @@ export default function App() {
                 <li>
                   <button onClick={() => navigateTo('parts')} className="hover:text-red-400 transition-colors">
                     OEM &amp; Performance Parts
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => navigateTo('about')} className="hover:text-red-400 transition-colors">
+                    About Us
                   </button>
                 </li>
                 <li>

@@ -14,13 +14,14 @@ import {
   LogOut, 
   Phone, 
   Sparkles, 
-  Lock
+  Lock,
+  Info
 } from 'lucide-react';
 import { UserRole, PushNotification } from '../types';
 
 interface HeaderProps {
-  activeTab: 'home' | 'services' | 'cars' | 'parts' | 'garage' | 'admin';
-  setActiveTab: (tab: 'home' | 'services' | 'cars' | 'parts' | 'garage' | 'admin') => void;
+  activeTab: 'home' | 'services' | 'cars' | 'parts' | 'garage' | 'admin' | 'about';
+  setActiveTab: (tab: 'home' | 'services' | 'cars' | 'parts' | 'garage' | 'admin' | 'about') => void;
   cartCount: number;
   openCart: () => void;
   currentRole: UserRole;
@@ -146,8 +147,13 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActiveTab('home')}
             className="flex items-center gap-2 sm:gap-3 cursor-pointer group min-w-0"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg shadow-red-900/40 ring-1 ring-red-500/50 group-hover:scale-105 transition-transform duration-200 shrink-0">
-              <Wrench className="w-4 h-4 sm:w-5 sm:h-5 text-white transform -rotate-12 group-hover:rotate-0 transition-transform" />
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden shadow-lg shadow-red-900/40 ring-1 ring-red-500/50 group-hover:scale-105 transition-transform duration-200 shrink-0 bg-zinc-900">
+              <img
+                src="/images/femisayo%20brand%20logo.jpg"
+                alt="Femisayo Autos brand logo"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1 sm:gap-1.5">
@@ -221,17 +227,32 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              id="nav-garage"
-              onClick={handleGarageClick}
+              id="nav-about"
+              onClick={() => setActiveTab('about')}
               className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'garage'
+                activeTab === 'about'
                   ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
                   : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
               }`}
             >
-              <Calendar className="w-4 h-4" />
-              <span>My Garage</span>
+              <Info className="w-4 h-4" />
+              <span>About Us</span>
             </button>
+
+            {isAuthenticated && (
+              <button
+                id="nav-garage"
+                onClick={handleGarageClick}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  activeTab === 'garage'
+                    ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
+                    : 'text-zinc-300 hover:text-white hover:bg-zinc-800/60'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>My Garage</span>
+              </button>
+            )}
             </>)}
 
             {isStaff && (
@@ -259,7 +280,8 @@ export const Header: React.FC<HeaderProps> = ({
             {/* All prices displayed in Naira */}
 
             {/* Signed-in Role Pill + Logout (or Sign In for guests) */}
-            <div className="flex items-center gap-1.5">
+            {/* Hidden on mobile — account controls live inside the hamburger menu */}
+            <div className="hidden lg:flex items-center gap-1.5">
               {isAuthenticated ? (
                 <>
                   <div
@@ -288,36 +310,38 @@ export const Header: React.FC<HeaderProps> = ({
               ) : (
                 <button
                   onClick={() => onOpenLogin('customer')}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-all shadow-md shadow-red-700/30"
+                  className="flex items-center gap-1 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-[11px] sm:text-[11px] font-bold transition-all shadow-md shadow-red-700/30"
                   title="Sign in to track bookings in My Garage"
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Sign In</span>
                 </button>
               )}
             </div>
 
-            {/* Notification Bell with Badge */}
-            <button
-              id="notifications-btn"
-              onClick={onOpenNotifications}
-              className="relative p-1.5 sm:p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
-              title="Push Notifications & Live Updates"
-            >
-              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+            {/* Notification Bell with Badge — signed-in only, hidden on mobile (hamburger menu) */}
+            {isAuthenticated && (
+              <button
+                id="notifications-btn"
+                onClick={onOpenNotifications}
+                className="hidden lg:flex relative p-1.5 sm:p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors items-center"
+                title="Push Notifications & Live Updates"
+              >
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-bounce">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
 
-            {/* Wishlist Button with Count Badge */}
-            {!isStaff && (
+            {/* Wishlist Button with Count Badge — signed-in only, hidden on mobile (hamburger menu) */}
+            {isAuthenticated && !isStaff && (
               <button
                 id="wishlist-btn"
                 onClick={onOpenWishlist}
-                className="relative p-1.5 sm:p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                className="hidden lg:flex relative p-1.5 sm:p-2 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors items-center"
                 title="My Wishlist"
               >
                 <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -329,8 +353,8 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Cart Button with Count Badge (hidden in the Admin portal) */}
-            {activeTab !== 'admin' && (
+            {/* Cart Button with Count Badge — signed-in only (hidden in the Admin portal) */}
+            {isAuthenticated && activeTab !== 'admin' && (
               <button
                 id="cart-btn"
                 onClick={openCart}
@@ -369,6 +393,39 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
+          {/* Notifications + Wishlist — signed-in only (desktop: navbar icons) */}
+          {isAuthenticated && (
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => { onOpenNotifications(); setMobileMenuOpen(false); }}
+                className="relative w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-zinc-300 hover:bg-zinc-900"
+              >
+                <Bell className="w-4 h-4 text-red-400" />
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {!isStaff && (
+                <button
+                  onClick={() => { onOpenWishlist(); setMobileMenuOpen(false); }}
+                  className="relative w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 text-zinc-300 hover:bg-zinc-900"
+                >
+                  <Heart className="w-4 h-4 text-red-400" />
+                  <span>Wishlist</span>
+                  {wishlistCount > 0 && (
+                    <span className="ml-auto bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-1.5 pt-1">
             {activeTab !== 'admin' && (<>
             <button
@@ -402,14 +459,26 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={() => { handleGarageClick(); setMobileMenuOpen(false); }}
+              onClick={() => { setActiveTab('about'); setMobileMenuOpen(false); }}
               className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 ${
-                activeTab === 'garage' ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-900'
+                activeTab === 'about' ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-900'
               }`}
             >
-              <Calendar className="w-4 h-4 text-red-400" />
-              <span>My Garage &amp; Bookings</span>
+              <Info className="w-4 h-4 text-red-400" />
+              <span>About Us</span>
             </button>
+
+            {isAuthenticated && (
+              <button
+                onClick={() => { handleGarageClick(); setMobileMenuOpen(false); }}
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-3 ${
+                  activeTab === 'garage' ? 'bg-red-600 text-white' : 'text-zinc-300 hover:bg-zinc-900'
+                }`}
+              >
+                <Calendar className="w-4 h-4 text-red-400" />
+                <span>My Garage &amp; Bookings</span>
+              </button>
+            )}
             </>)}
 
             {isStaff && (
