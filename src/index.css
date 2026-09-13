@@ -4,3 +4,14 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Barlow Condensed", ui-monospace, sans-serif;
 }
+
+@media (max-width: 767px) {
+  .crud-table th,
+  .crud-table td {
+    padding-left: 1.25rem;
+    width: 500px;
+    padding-right: 1.25rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}

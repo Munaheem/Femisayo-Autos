@@ -390,7 +390,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
 
           <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-            <table className="w-full text-left text-xs text-zinc-300">
+            <table className="w-full min-w-[1150px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
               <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                 <tr>
                   <th className="px-4 py-3.5">ID / Date</th>
@@ -458,7 +458,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           </span>
                         </td>
 
-                        <td className="px-4 py-3 text-zinc-400 max-w-[200px] truncate">
+                        <td className="px-4 py-3 text-zinc-400">
                           {apt.technicianNotes || '—'}
                         </td>
 
@@ -950,7 +950,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
           {/* Appointments Table */}
           <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-            <table className="w-full text-left text-xs text-zinc-300">
+            <table className="w-full min-w-[1300px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
               <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                 <tr>
                   <th className="px-4 py-3.5">ID / Date</th>
@@ -1148,7 +1148,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           {/* Parts Subtab CRUD Table */}
           {inventorySubTab === 'parts' && (
             <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-              <table className="w-full text-left text-xs text-zinc-300">
+              <table className="w-full min-w-[950px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
                 <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                   <tr>
                     <th className="px-4 py-3.5">Part Details</th>
@@ -1224,7 +1224,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           {/* Vehicles Subtab CRUD Table */}
           {inventorySubTab === 'vehicles' && (
             <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-              <table className="w-full text-left text-xs text-zinc-300">
+              <table className="w-full min-w-[1100px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
                 <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                   <tr>
                     <th className="px-4 py-3.5">Vehicle</th>

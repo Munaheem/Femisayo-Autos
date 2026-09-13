@@ -1885,6 +1885,11 @@ export interface AuthUser {
 export const loadAuthUsers = () => loadFromStorage<AuthUser[]>('apex_auth_users', []);
 export const saveAuthUsers = (users: AuthUser[]) => saveToStorage('apex_auth_users', users);
 
+// Backend bearer token (JWT) persisted across browser sessions.
+// Set by src/services/api.ts when the backend issues a token at login/register.
+export const loadAuthToken = () => loadFromStorage<string | null>('apex_auth_token', null);
+export const saveAuthToken = (token: string | null) => saveToStorage('apex_auth_token', token);
+
 // Per-account wishlist (persists across logout / sessions, keyed by account email)
 export const loadWishlist = (email: string) => loadFromStorage<PartItem[]>(`apex_wishlist_${email}`, []);
 export const saveWishlist = (email: string, items: PartItem[]) => saveToStorage(`apex_wishlist_${email}`, items);

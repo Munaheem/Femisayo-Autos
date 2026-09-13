@@ -70,6 +70,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ customerAccounts, onLogin,
     const backendUser = await api.auth.login({ email, password, role: portal === 'customer' ? 'customer' : staffRole });
     if (backendUser) {
       setError('');
+      if (backendUser.token) api.authToken.set(backendUser.token);
       if (backendUser.role === 'customer') {
         onLogin('customer', backendUser.user?.email || email);
       } else {
@@ -122,6 +123,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ customerAccounts, onLogin,
     const backendUser = !alreadyExistsCheck ? await api.auth.register(data) : null;
     if (backendUser?.user) {
       setError('');
+      if (backendUser.token) api.authToken.set(backendUser.token);
       onRegister(backendUser.user);
       return;
     }

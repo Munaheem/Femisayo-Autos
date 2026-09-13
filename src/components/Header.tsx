@@ -442,12 +442,6 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="pt-3 border-t border-zinc-800/80">
             {isAuthenticated ? (
               <>
-                <div className="flex items-center justify-between text-xs text-zinc-400 mb-2 px-1">
-                  <span className="font-semibold text-zinc-300">Signed in as:</span>
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${roleLabels[currentRole].color}`}>
-                    {currentRole === 'customer' ? 'Client' : roleLabels[currentRole].badge}
-                  </span>
-                </div>
                 <button
                   onClick={() => { onLogout(); setMobileMenuOpen(false); }}
                   className="w-full px-2.5 py-2 rounded-lg text-xs font-medium border border-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-500/40 hover:bg-red-950/30 transition-colors flex items-center justify-center gap-1.5"

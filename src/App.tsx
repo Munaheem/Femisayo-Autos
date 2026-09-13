@@ -8,6 +8,7 @@ import {
   PushNotificationItem, 
   PushTarget,
   ReceiptLineItem,
+  ServiceItem,
   Technician, 
   UserRole, 
   VehicleItem 
@@ -178,7 +179,10 @@ export default function App() {
   const [parts, setParts] = useState<PartItem[]>([]);
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const technicians: Technician[] = INITIAL_TECHNICIANS;
+  // Services & technicians come from the backend when VITE_API_URL is set;
+  // otherwise they fall back to the bundled seed catalogs.
+  const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
+  const [technicians, setTechnicians] = useState<Technician[]>(INITIAL_TECHNICIANS);
 
   // Selected vehicle fitment (Year, Make, Model)
   const [selectedVehicleFitment, setSelectedVehicleFitment] = useState<{
@@ -275,6 +279,30 @@ export default function App() {
     setOrders(loadedOrders);
 
     setActiveCustomer(prev => loadedCusts.find(c => c.email === prev.email) || prev);
+
+    // When a real backend is configured (VITE_API_URL set), hydrate every
+    // domain collection from it. The backend response wins over localStorage
+    // so the app becomes fully database-backed once the endpoints exist.
+    if (api.isConfigured) {
+      (async () => {
+        const [svcs, techs, vehs, pts, apts, custs, ords] = await Promise.all([
+          api.services.list(),
+          api.technicians.list(),
+          api.vehicles.list(),
+          api.parts.list(),
+          api.appointments.list(),
+          api.customers.list(),
+          api.orders.list()
+        ]);
+        if (svcs) setServices(svcs);
+        if (techs) setTechnicians(techs);
+        if (vehs) setVehicles(vehs);
+        if (pts) setParts(pts);
+        if (apts) setAppointments(apts);
+        if (custs) setCustomers(custs);
+        if (ords) setOrders(ords);
+      })();
+    }
 
     // Initial default notifications
     setNotifications([
@@ -378,6 +406,9 @@ export default function App() {
 
     setNotifications((prev: PushNotificationItem[]) => [newNotif, ...prev]);
     setUnreadNotificationCount((prev: number) => prev + 1);
+
+    // Mirror to the backend when connected (persisted + dispatched to targets).
+    void api.notifications.send(newNotif);
   };
 
   // Simulated confirmation emails — surfaced as client notifications + logs
@@ -441,12 +472,14 @@ export default function App() {
     };
   };
 
-  const handleLogin = (role: UserRole, email?: string) => {
+  const handleLogin = async (role: UserRole, email?: string) => {
     if (role === 'customer' && email) {
       const account = authUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (account) {
         setActiveCustomer(buildCustomerRecord(account));
-        setWishlist(loadWishlist(account.email));
+        // Prefer the server-side wishlist when the backend is connected.
+        const remoteWishlist = await api.wishlist.get(account.id);
+        setWishlist(remoteWishlist ?? loadWishlist(account.email));
       }
     } else if (role !== 'customer') {
       setWishlist([]);
@@ -470,6 +503,8 @@ export default function App() {
   const handleRegister = (user: AuthUser) => {
     const newCustomers = [buildCustomerRecord(user), ...customers];
     updateCustomers(newCustomers);
+    // Keep the loyalty/customer record in sync with the backend if connected.
+    void api.customers.upsert(buildCustomerRecord(user));
     const newUsers = [...authUsers, user];
     setAuthUsers(newUsers);
     saveAuthUsers(newUsers);
@@ -509,6 +544,7 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated && currentRole === 'customer') {
       saveWishlist(activeCustomer.email, wishlist);
+      void api.wishlist.update(activeCustomer.id, wishlist);
     }
   }, [wishlist, isAuthenticated, currentRole, activeCustomer.email]);
 
@@ -567,6 +603,7 @@ export default function App() {
   const markAllNotificationsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadNotificationCount(0);
+    void api.notifications.markAllRead();
   };
 
   // Start Checkout from Cart
@@ -619,6 +656,9 @@ export default function App() {
         updateOrders([newOrder, ...orders]);
         setCart([]);
 
+        // Persist the order + notify the backend when connected.
+        void api.orders.create(newOrder);
+
         // Deduct inventory quantities
         const updatedParts = parts.map(p => {
           const itemInCart = cart.find(c => c.part.id === p.id);
@@ -628,6 +668,12 @@ export default function App() {
           return p;
         });
         updateParts(updatedParts);
+
+        // Sync stock levels for every purchased part to the backend.
+        for (const item of cart) {
+          const next = updatedParts.find(p => p.id === item.part.id);
+          if (next) void api.parts.update(next);
+        }
 
         // Notify client
         handleTriggerPushNotification(
@@ -746,10 +792,14 @@ export default function App() {
         { name: `Final Service Balance: ${apt.serviceName}`, quantity: 1, price: balance }
       ],
       onComplete: (txnId) => {
-        const updated = appointments.map(a => 
-          a.id === apt.id ? { ...a, paymentStatus: 'paid' as const } : a
-        );
+        const paidApt: Appointment = {
+          ...apt,
+          paymentStatus: 'paid',
+          updatedAt: new Date().toISOString()
+        };
+        const updated = appointments.map(a => a.id === apt.id ? paidApt : a);
         updateAppointments(updated);
+        void api.appointments.update(paidApt);
         handleTriggerPushNotification(
           'Service Balance Cleared',
           `Full payment for order #${apt.id.toUpperCase()} received. Ready for pickup!`,
@@ -835,7 +885,7 @@ export default function App() {
               onClick={() => navigateTo('services')}
               className="text-xs text-red-400 hover:text-red-300 font-bold flex items-center gap-1.5 underline shrink-0"
             >
-              <span>View All {INITIAL_SERVICES.length} Service Packages &amp; Pricing</span>
+              <span>View All {services.length} Service Packages &amp; Pricing</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -843,7 +893,7 @@ export default function App() {
           {/* Service Cards Preview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {FEATURED_SERVICE_ORDER.map((id) => {
-              const service = INITIAL_SERVICES.find((s) => s.id === id);
+              const service = services.find((s) => s.id === id);
               if (!service) return null;
               const Icon = SERVICE_ICONS[id] || Wrench;
               return (
@@ -1079,11 +1129,14 @@ export default function App() {
         {/* SERVICES & BOOKING TAB */}
         {activeTab === 'services' && (
           <ServicePricingAndBooking
-            services={INITIAL_SERVICES}
+            services={services}
             technicians={technicians}
             onAppointmentBooked={(apt, customer) => {
               updateCustomers([customer, ...customers]);
               updateAppointments([apt, ...appointments]);
+              // Persist the booking + customer record to the backend when connected.
+              void api.bookings.create(apt);
+              void api.customers.upsert(customer);
               handleTriggerPushNotification(
                 'Service Appointment Booked',
                 `${apt.serviceName} for ${apt.vehicleYear} ${apt.vehicleMake} ${apt.vehicleModel} on ${apt.scheduledDate} at ${apt.scheduledTime}.`,
@@ -1158,6 +1211,7 @@ export default function App() {
               const prev = appointments.find(a => a.id === updated.id);
               const newApts = appointments.map(a => a.id === updated.id ? updated : a);
               updateAppointments(newApts);
+              void api.appointments.update(updated);
               // Automated email updates along the service lifecycle
               if (prev && prev.status !== updated.status) {
                 if (['in_repair', 'quality_check'].includes(updated.status)) {
@@ -1186,50 +1240,62 @@ export default function App() {
             onDeleteAppointment={(id) => {
               const newApts = appointments.filter(a => a.id !== id);
               updateAppointments(newApts);
+              void api.appointments.remove(id);
             }}
             onCreateAppointment={(newApt) => {
               updateAppointments([newApt, ...appointments]);
+              void api.appointments.create(newApt);
             }}
             vehicles={vehicles}
             onUpdateVehicle={(updated) => {
               const newVehs = vehicles.map(v => v.id === updated.id ? updated : v);
               updateVehicles(newVehs);
+              void api.vehicles.update(updated);
             }}
             onDeleteVehicle={(id) => {
               const newVehs = vehicles.filter(v => v.id !== id);
               updateVehicles(newVehs);
+              void api.vehicles.remove(id);
             }}
             onCreateVehicle={(newVeh) => {
               updateVehicles([newVeh, ...vehicles]);
+              void api.vehicles.create(newVeh);
             }}
             parts={parts}
             onUpdatePart={(updated) => {
               const newParts = parts.map(p => p.id === updated.id ? updated : p);
               updateParts(newParts);
+              void api.parts.update(updated);
             }}
             onDeletePart={(id) => {
               const newParts = parts.filter(p => p.id !== id);
               updateParts(newParts);
+              void api.parts.remove(id);
             }}
             onCreatePart={(newPart) => {
               updateParts([newPart, ...parts]);
+              void api.parts.create(newPart);
             }}
             customers={customers}
             onUpdateCustomer={(updated) => {
               const newCusts = customers.map(c => c.id === updated.id ? updated : c);
               updateCustomers(newCusts);
+              void api.customers.update(updated);
             }}
             onDeleteCustomer={(id) => {
               const newCusts = customers.filter(c => c.id !== id);
               updateCustomers(newCusts);
+              void api.customers.remove(id);
             }}
             onCreateCustomer={(newCust) => {
               updateCustomers([newCust, ...customers]);
+              void api.customers.create(newCust);
             }}
             orders={orders}
             onUpdateOrder={(updated) => {
               const newOrds = orders.map(o => o.id === updated.id ? updated : o);
               updateOrders(newOrds);
+              void api.orders.update(updated);
             }}
             technicians={technicians}
             onSendPushNotification={handleTriggerPushNotification}
