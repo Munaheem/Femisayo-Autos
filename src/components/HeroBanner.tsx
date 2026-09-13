@@ -81,7 +81,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           muted
           loop
           playsInline
-          poster="/images/BMW m4 competition.jpg"
           className="w-full h-full object-cover object-center opacity-80 filter contrast-125 saturate-110"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0a0c10] via-[#0a0c10]/55 to-transparent" />
