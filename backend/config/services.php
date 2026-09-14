@@ -13,6 +13,7 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+   
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
@@ -34,5 +35,9 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+   'paystack' => [
+    'secret_key' => env('PAYSTACK_SECRET_KEY'),
+    'ngn_per_usd' => env('NGN_PER_USD', 1500),
+],
 
 ];

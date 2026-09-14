@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\PartController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\WishlistController;
+use App\Http\Controllers\Api\V1\PaymentController;
 
 Route::prefix('v1')->group(function () {
 
@@ -225,6 +226,11 @@ Route::prefix('v1')->group(function () {
         Route::put(
             'wishlist/{customerId}',
             [WishlistController::class, 'update']
+        );
+
+        Route::post(
+            'payments/initialize',
+            [PaymentController::class, 'initialize']
         );
 
     });

@@ -42,7 +42,7 @@ class WishlistController extends Controller
     }
 
     public function update(Request $request, int $customerId)
-    {
+    {   
         $customer = Customer::find($customerId);
 
         if (! $customer) {
@@ -64,8 +64,15 @@ class WishlistController extends Controller
         }
 
         $validated = $request->validate([
-            'items' => ['required', 'array'],
-            'items.*.id' => ['required', 'string', 'distinct', 'exists:parts,id'],
+            // "present" allows an empty array so the wishlist can be cleared.
+            'items' => ['present', 'array'],
+
+            'items.*.id' => [
+                'required',
+                'string',
+                'distinct',
+                'exists:parts,id',
+            ],
         ]);
 
         $partIds = collect($validated['items'])
@@ -74,6 +81,7 @@ class WishlistController extends Controller
             ->all();
 
         DB::transaction(function () use ($customer, $partIds) {
+            // Replace the customer's existing wishlist.
             $customer->wishlistItems()->delete();
 
             foreach ($partIds as $partId) {
