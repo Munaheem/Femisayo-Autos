@@ -130,15 +130,15 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::apiResource('vehicles', VehicleController::class)
-            ->only([
-                'index',
-                'store',
-                'show',
-                'update',
-                'destroy',
-            ]);
+        Route::get('vehicles', [VehicleController::class, 'index']);
+        Route::get('vehicles/{vehicle}', [VehicleController::class, 'show']);
 
+        Route::middleware('role:admin,sales,technician')->group(function () {
+            Route::post('vehicles', [VehicleController::class, 'store']);
+            Route::put('vehicles/{vehicle}', [VehicleController::class, 'update']);
+            Route::patch('vehicles/{vehicle}', [VehicleController::class, 'update']);
+            Route::delete('vehicles/{vehicle}', [VehicleController::class, 'destroy']);
+        });
 
         /*
         |--------------------------------------------------------------------------
@@ -201,13 +201,14 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::apiResource('parts', PartController::class)
-            ->only([
-                'index',
-                'store',
-                'update',
-                'destroy',
-            ]);
+        Route::get('parts', [PartController::class, 'index']);
+
+            Route::middleware('role:admin,sales,technician')->group(function () {
+                Route::post('parts', [PartController::class, 'store']);
+                Route::put('parts/{part}', [PartController::class, 'update']);
+                Route::patch('parts/{part}', [PartController::class, 'update']);
+                Route::delete('parts/{part}', [PartController::class, 'destroy']);
+            });
 
 
         /*
