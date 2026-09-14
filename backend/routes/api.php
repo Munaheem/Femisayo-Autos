@@ -6,12 +6,13 @@ use App\Http\Controllers\Api\V1\CustomerGarageController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\TechnicianController;
 use App\Http\Controllers\Api\V1\AppointmentController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\PartController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\WishlistController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\VehicleController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
@@ -44,7 +45,6 @@ Route::prefix('v1')->group(function () {
                 AuthController::class,
                 'logout',
             ]);
-
         });
     });
 
@@ -126,6 +126,22 @@ Route::prefix('v1')->group(function () {
 
         /*
         |--------------------------------------------------------------------------
+        | Vehicles Showroom
+        |--------------------------------------------------------------------------
+        */
+
+        Route::apiResource('vehicles', VehicleController::class)
+            ->only([
+                'index',
+                'store',
+                'show',
+                'update',
+                'destroy',
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
         | Services Management
         |--------------------------------------------------------------------------
         */
@@ -173,40 +189,58 @@ Route::prefix('v1')->group(function () {
                 'destroy',
             ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Appointment Status
-        |--------------------------------------------------------------------------
-        |
-        */
-
         Route::patch(
             'appointments/{appointment}/status',
             [AppointmentController::class, 'updateStatus']
         );
 
-        Route::apiResource('parts', PartController::class)
-            ->only(['index', 'store', 'update', 'destroy']
-        );
-
-        Route::apiResource('orders', OrderController::class)
-        ->only([
-            'index',
-            'store',
-            'show',
-            'update',
-            'destroy',
-        ]);
 
         /*
-        Notification 
+        |--------------------------------------------------------------------------
+        | Parts
+        |--------------------------------------------------------------------------
         */
-        
 
-        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::apiResource('parts', PartController::class)
+            ->only([
+                'index',
+                'store',
+                'update',
+                'destroy',
+            ]);
 
-        Route::post('/notifications', [NotificationController::class, 'store']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Orders
+        |--------------------------------------------------------------------------
+        */
+
+        Route::apiResource('orders', OrderController::class)
+            ->only([
+                'index',
+                'store',
+                'show',
+                'update',
+                'destroy',
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Notifications
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/notifications',
+            [NotificationController::class, 'index']
+        );
+
+        Route::post(
+            '/notifications',
+            [NotificationController::class, 'store']
+        );
 
         Route::patch(
             '/notifications/read-all',
@@ -218,6 +252,13 @@ Route::prefix('v1')->group(function () {
             [NotificationController::class, 'read']
         );
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Wishlist
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             'wishlist/{customerId}',
             [WishlistController::class, 'index']
@@ -228,9 +269,21 @@ Route::prefix('v1')->group(function () {
             [WishlistController::class, 'update']
         );
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Payments
+        |--------------------------------------------------------------------------
+        */
+
         Route::post(
             'payments/initialize',
             [PaymentController::class, 'initialize']
+        );
+
+        Route::get(
+            'payments/verify/{reference}',
+            [PaymentController::class, 'verify']
         );
 
     });

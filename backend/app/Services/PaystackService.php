@@ -63,5 +63,41 @@ class PaystackService
                 $data['authorization_url'] ?? null,
             'accessCode' => $data['access_code'] ?? null,
         ];
+
+        
+    }
+    public function verifyTransaction(string $reference): array
+        {
+            $secretKey = config('services.paystack.secret_key');
+
+            if (! $secretKey) {
+                throw new RuntimeException(
+                    'Paystack secret key is not configured.'
+                );
+            }
+
+            $response = Http::withToken($secretKey)
+                ->acceptJson()
+                ->get(
+                    $this->baseUrl . '/transaction/verify/' . urlencode($reference)
+                );
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    $response->json('message')
+                        ?? 'Unable to verify Paystack transaction.'
+                );
+            }
+
+            $data = $response->json('data');
+
+            if (! $response->json('status') || ! is_array($data)) {
+                throw new RuntimeException(
+                    $response->json('message')
+                        ?? 'Paystack transaction verification failed.'
+                );
+            }
+
+            return $data;
     }
 }
