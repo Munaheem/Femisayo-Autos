@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\AppointmentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\PartController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\WishlistController;
 
 Route::prefix('v1')->group(function () {
 
@@ -195,6 +197,35 @@ Route::prefix('v1')->group(function () {
             'update',
             'destroy',
         ]);
+
+        /*
+        Notification 
+        */
+        
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+
+        Route::post('/notifications', [NotificationController::class, 'store']);
+
+        Route::patch(
+            '/notifications/read-all',
+            [NotificationController::class, 'readAll']
+        );
+
+        Route::patch(
+            '/notifications/{id}/read',
+            [NotificationController::class, 'read']
+        );
+
+        Route::get(
+            'wishlist/{customerId}',
+            [WishlistController::class, 'index']
+        );
+
+        Route::put(
+            'wishlist/{customerId}',
+            [WishlistController::class, 'update']
+        );
 
     });
 

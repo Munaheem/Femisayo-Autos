@@ -42,4 +42,12 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerVehicle::class);
     }
+
+    public function wishlistItems()
+    {
+        return $this->hasMany(
+            WishlistItem::class,
+            'customer_id'
+        );
+    }
 }

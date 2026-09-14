@@ -46,7 +46,13 @@ class NotificationResource extends JsonResource
                     $user = $this->users
                         ->firstWhere('id', $request->user()->id);
 
-                    return $user?->pivot->read_at?->toISOString();
+                    if (! $user || ! $user->pivot->read_at) {
+                        return null;
+                    }
+
+                    return \Carbon\Carbon::parse(
+                        $user->pivot->read_at
+                    )->toISOString();
                 }
             ),
 
