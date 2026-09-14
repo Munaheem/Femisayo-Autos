@@ -27,6 +27,24 @@ class RegisterRequest extends FormRequest
                 'unique:users,email',
             ],
 
+            'phone' => [
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'address' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
+            'vehicleInfo' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
             'password' => [
                 'required',
                 'string',

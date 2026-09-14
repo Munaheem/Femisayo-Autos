@@ -1,7 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerGarageController;
+use App\Http\Controllers\Api\V1\ServiceController;
+use App\Http\Controllers\Api\V1\TechnicianController;
+use App\Http\Controllers\Api\V1\AppointmentController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\PartController;
+use App\Http\Controllers\Api\V1\OrderController;
 
 Route::prefix('v1')->group(function () {
 
@@ -36,6 +43,159 @@ Route::prefix('v1')->group(function () {
             ]);
 
         });
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public Catalog
+    |--------------------------------------------------------------------------
+    |
+    | Customers can browse services and technicians without authentication.
+    |
+    */
+
+    Route::get('/services', [
+        ServiceController::class,
+        'index',
+    ]);
+
+    Route::get('/services/{service}', [
+        ServiceController::class,
+        'show',
+    ]);
+
+    Route::get('/technicians', [
+        TechnicianController::class,
+        'index',
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authenticated Customer / Management Routes
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware('auth:sanctum')->group(function () {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customers
+        |--------------------------------------------------------------------------
+        */
+
+        Route::apiResource('customers', CustomerController::class)
+            ->only([
+                'index',
+                'show',
+                'update',
+                'destroy',
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Customer Garage
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            'customers/{customer}/garage',
+            [CustomerGarageController::class, 'index']
+        );
+
+        Route::post(
+            'customers/{customer}/garage',
+            [CustomerGarageController::class, 'store']
+        );
+
+        Route::put(
+            'customers/{customer}/garage/{vehicle}',
+            [CustomerGarageController::class, 'update']
+        );
+
+        Route::delete(
+            'customers/{customer}/garage/{vehicle}',
+            [CustomerGarageController::class, 'destroy']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Services Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::post('/services', [
+            ServiceController::class,
+            'store',
+        ]);
+
+        Route::put('/services/{service}', [
+            ServiceController::class,
+            'update',
+        ]);
+
+        Route::delete('/services/{service}', [
+            ServiceController::class,
+            'destroy',
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Technician Management
+        |--------------------------------------------------------------------------
+        */
+
+        Route::patch('/technicians/{technician}', [
+            TechnicianController::class,
+            'update',
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Appointments
+        |--------------------------------------------------------------------------
+        */
+
+        Route::apiResource('appointments', AppointmentController::class)
+            ->only([
+                'index',
+                'store',
+                'show',
+                'update',
+                'destroy',
+            ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Appointment Status
+        |--------------------------------------------------------------------------
+        |
+        */
+
+        Route::patch(
+            'appointments/{appointment}/status',
+            [AppointmentController::class, 'updateStatus']
+        );
+
+        Route::apiResource('parts', PartController::class)
+            ->only(['index', 'store', 'update', 'destroy']
+        );
+
+        Route::apiResource('orders', OrderController::class)
+        ->only([
+            'index',
+            'store',
+            'show',
+            'update',
+            'destroy',
+        ]);
+
     });
 
 });

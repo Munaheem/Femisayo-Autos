@@ -1,28 +1,48 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-
+use Laravel\Sanctum\PersonalAccessToken;
+use App\Models\Customer;
+use Illuminate\Support\Facades\DB;
 class AuthService
 {
     public function register(array $data): array
     {
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'role' => 'customer',
-            'password' => $data['password'],
-        ]);
+        return DB::transaction(function () use ($data) {
 
-        $token = $user->createToken('femisayo-autos')->plainTextToken;
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'role' => 'customer',
+                'password' => $data['password'],
+            ]);
 
-        return [
-            'user' => $user,
-            'token' => $token,
-        ];
+            $customer = Customer::create([
+                'user_id' => $user->id,
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'] ?? null,
+                'address' => $data['address'] ?? null,
+                'vehicle_info' => $data['vehicleInfo'] ?? null,
+                'total_spent' => 0,
+                'loyalty_points' => 0,
+                'tier' => 'Silver',
+                'encrypted_vault' => null,
+            ]);
+
+            $token = $user->createToken(
+                'femisayo-autos'
+            )->plainTextToken;
+
+            return [
+                'user' => $user,
+                'customer' => $customer,
+                'token' => $token,
+            ];
+        });
     }
 
     public function login(array $data): array
@@ -48,6 +68,10 @@ class AuthService
 
     public function logout(User $user): void
     {
-        $user->currentAccessToken()?->delete();
+        $token = $user->currentAccessToken();
+
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
     }
 }
