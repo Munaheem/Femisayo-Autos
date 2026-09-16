@@ -140,26 +140,35 @@ Route::prefix('v1')->group(function () {
             Route::delete('vehicles/{vehicle}', [VehicleController::class, 'destroy']);
         });
 
+
         /*
         |--------------------------------------------------------------------------
         | Services Management
         |--------------------------------------------------------------------------
         */
 
-        Route::post('/services', [
-            ServiceController::class,
-            'store',
-        ]);
+        Route::middleware('role:admin,sales,technician')->group(function () {
 
-        Route::put('/services/{service}', [
-            ServiceController::class,
-            'update',
-        ]);
+            Route::post('/services', [
+                ServiceController::class,
+                'store',
+            ]);
 
-        Route::delete('/services/{service}', [
-            ServiceController::class,
-            'destroy',
-        ]);
+            Route::put('/services/{service}', [
+                ServiceController::class,
+                'update',
+            ]);
+
+            Route::patch('/services/{service}', [
+                ServiceController::class,
+                'update',
+            ]);
+
+            Route::delete('/services/{service}', [
+                ServiceController::class,
+                'destroy',
+            ]);
+        });
 
 
         /*
@@ -168,10 +177,14 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::patch('/technicians/{technician}', [
-            TechnicianController::class,
-            'update',
-        ]);
+       Route::middleware('role:admin,sales,technician')->group(function () {
+
+            Route::patch('/technicians/{technician}', [
+                TechnicianController::class,
+                'update',
+            ]);
+
+        });
 
 
         /*
@@ -180,19 +193,47 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
+                /*
+        |--------------------------------------------------------------------------
+        | Appointments
+        |--------------------------------------------------------------------------
+        */
+
+        // Customers and staff can view/create appointments.
+        // The controller handles ownership and customer/staff-specific behavior.
         Route::apiResource('appointments', AppointmentController::class)
             ->only([
                 'index',
                 'store',
                 'show',
-                'update',
-                'destroy',
             ]);
 
-        Route::patch(
-            'appointments/{appointment}/status',
-            [AppointmentController::class, 'updateStatus']
+        // Customers can update/cancel their own appointments.
+        // Staff can update/cancel appointments through controller authorization.
+        Route::put(
+            'appointments/{appointment}',
+            [AppointmentController::class, 'update']
         );
+
+        Route::patch(
+            'appointments/{appointment}',
+            [AppointmentController::class, 'update']
+        );
+
+        Route::delete(
+            'appointments/{appointment}',
+            [AppointmentController::class, 'destroy']
+        );
+
+        // Only staff roles can change appointment workflow status.
+        Route::middleware('role:admin,sales,technician')->group(function () {
+
+            Route::patch(
+                'appointments/{appointment}/status',
+                [AppointmentController::class, 'updateStatus']
+            );
+
+        });
 
 
         /*
@@ -203,32 +244,50 @@ Route::prefix('v1')->group(function () {
 
         Route::get('parts', [PartController::class, 'index']);
 
-            Route::middleware('role:admin,sales,technician')->group(function () {
-                Route::post('parts', [PartController::class, 'store']);
-                Route::put('parts/{part}', [PartController::class, 'update']);
-                Route::patch('parts/{part}', [PartController::class, 'update']);
-                Route::delete('parts/{part}', [PartController::class, 'destroy']);
-            });
+        Route::middleware('role:admin,sales,technician')->group(function () {
+
+            Route::post('parts', [PartController::class, 'store']);
+
+            Route::put('parts/{part}', [PartController::class, 'update']);
+
+            Route::patch('parts/{part}', [PartController::class, 'update']);
+
+            Route::delete('parts/{part}', [PartController::class, 'destroy']);
+        });
 
 
-        /*
+            /*
         |--------------------------------------------------------------------------
         | Orders
         |--------------------------------------------------------------------------
         */
 
-        Route::apiResource('orders', OrderController::class)
-            ->only([
-                'index',
-                'store',
-                'show',
-                'update',
-                'destroy',
-            ]);
+        // Customers and staff can view orders.
+        // Controller scopes customers to their own orders.
+        Route::get('orders', [OrderController::class, 'index']);
 
+        Route::get('orders/{order}', [OrderController::class, 'show']);
 
-        /*
-        |--------------------------------------------------------------------------
+        // Customers, admin, sales and technicians can create orders.
+        // Controller ensures customers can only create for themselves.
+        Route::post('orders', [OrderController::class, 'store']);
+
+        // Only staff roles can update orders.
+        Route::middleware('role:admin,sales,technician')->group(function () {
+
+            Route::put('orders/{order}', [OrderController::class, 'update']);
+            Route::patch('orders/{order}', [OrderController::class, 'update']);
+
+        });
+
+        // Only admin and sales can cancel orders.
+        Route::middleware('role:admin,sales')->group(function () {
+
+            Route::delete('orders/{order}', [OrderController::class, 'destroy']);
+
+        });
+        
+        /*-------------------------------------------------------------------
         | Notifications
         |--------------------------------------------------------------------------
         */
