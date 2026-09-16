@@ -116,6 +116,7 @@ class VehicleController extends Controller
 
         return new VehicleResource($vehicle->fresh());
     }
+    
 
     public function destroy(Vehicle $vehicle)
     {

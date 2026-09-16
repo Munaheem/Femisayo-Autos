@@ -82,19 +82,48 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
 
-        /*
+            /*
         |--------------------------------------------------------------------------
         | Customers
         |--------------------------------------------------------------------------
         */
 
-        Route::apiResource('customers', CustomerController::class)
-            ->only([
-                'index',
-                'show',
-                'update',
-                'destroy',
-            ]);
+        // Staff can view the complete customer list.
+        Route::middleware('role:admin,sales,technician')->group(function () {
+
+            Route::get(
+                'customers',
+                [CustomerController::class, 'index']
+            );
+
+        });
+
+        // Customers can view and update their own profile.
+        // Controller enforces ownership.
+        Route::get(
+            'customers/{customer}',
+            [CustomerController::class, 'show']
+        );
+
+        Route::put(
+            'customers/{customer}',
+            [CustomerController::class, 'update']
+        );
+
+        Route::patch(
+            'customers/{customer}',
+            [CustomerController::class, 'update']
+        );
+
+        // Only administrators can delete customer accounts.
+        Route::middleware('role:admin')->group(function () {
+
+            Route::delete(
+                'customers/{customer}',
+                [CustomerController::class, 'destroy']
+            );
+
+        });
 
 
         /*
@@ -103,6 +132,8 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
+        // Customers can access their own garage.
+        // Staff can access customer garages for management.
         Route::get(
             'customers/{customer}/garage',
             [CustomerGarageController::class, 'index']
@@ -118,12 +149,20 @@ Route::prefix('v1')->group(function () {
             [CustomerGarageController::class, 'update']
         );
 
-        Route::delete(
+        Route::patch(
             'customers/{customer}/garage/{vehicle}',
-            [CustomerGarageController::class, 'destroy']
+            [CustomerGarageController::class, 'update']
         );
 
+        // Only staff can delete garage vehicles.
+        Route::middleware('role:admin,sales,technician')->group(function () {
 
+            Route::delete(
+                'customers/{customer}/garage/{vehicle}',
+                [CustomerGarageController::class, 'destroy']
+            );
+
+        });
         /*
         |--------------------------------------------------------------------------
         | Vehicles Showroom

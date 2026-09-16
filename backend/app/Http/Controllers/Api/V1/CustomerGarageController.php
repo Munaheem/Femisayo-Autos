@@ -72,6 +72,17 @@ class CustomerGarageController extends Controller
         Customer $customer,
         int $vehicle
     ): JsonResponse {
+        $user = $request->user();
+
+        if (
+            $user->role === 'customer' &&
+            $customer->user_id !== $user->id
+        ) {
+            return response()->json([
+                'error' => 'You are not authorized to access this garage.',
+            ], 403);
+        }
+
         $vehicle = $customer->vehicles()->findOrFail($vehicle);
 
         $validated = $request->validate([
@@ -104,6 +115,17 @@ class CustomerGarageController extends Controller
         Customer $customer,
         int $vehicle
     ): JsonResponse {
+        $user = $request->user();
+
+        if (
+            $user->role === 'customer' &&
+            $customer->user_id !== $user->id
+        ) {
+            return response()->json([
+                'error' => 'You are not authorized to access this garage.',
+            ], 403);
+        }
+
         $vehicle = $customer->vehicles()->findOrFail($vehicle);
 
         $vehicle->delete();
