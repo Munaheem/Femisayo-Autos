@@ -69,32 +69,35 @@ class AppointmentResource extends JsonResource
 
             'updatedAt' => $this->updated_at?->toISOString(),
 
-            // Related objects remain available for existing frontend usage.
+            // Related customer resource.
             'customer' => $this->whenLoaded(
                 'customer',
                 fn () => $this->customer
-                    ? $this->customer->toArray()
+                    ? (new CustomerResource($this->customer))->resolve()
                     : null
             ),
 
+            // Related vehicle resource.
             'vehicle' => $this->whenLoaded(
                 'vehicle',
                 fn () => $this->vehicle
-                    ? $this->vehicle->toArray()
+                    ? (new CustomerVehicleResource($this->vehicle))->resolve()
                     : null
             ),
 
+            // Related service resource.
             'service' => $this->whenLoaded(
                 'service',
                 fn () => $this->service
-                    ? new ServiceResource($this->service)
+                    ? (new ServiceResource($this->service))->resolve()
                     : null
             ),
 
+            // Related technician resource.
             'technician' => $this->whenLoaded(
                 'technician',
                 fn () => $this->technician
-                    ? new TechnicianResource($this->technician)
+                    ? (new TechnicianResource($this->technician))->resolve()
                     : null
             ),
         ];

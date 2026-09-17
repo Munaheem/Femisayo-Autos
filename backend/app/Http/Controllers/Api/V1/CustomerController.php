@@ -190,9 +190,9 @@ class CustomerController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-       if (
-            $user->role === 'customer' &&
-            $customer->user_id !== $user->id
+        if (
+            $user->role === 'customer'
+            && $customer->user_id !== $user->id
         ) {
             return response()->json([
                 'error' => 'You are not authorized to access this customer.',
@@ -206,16 +206,172 @@ class CustomerController extends Controller
 
     /**
      * Update or upsert a customer record.
+     *
+     * PUT supports update-or-create.
+     * PATCH remains update-only.
      */
     public function update(
         Request $request,
-        Customer $customer
+        string $customer
     ): JsonResponse {
         $user = $request->user();
 
+        /*
+         * Manually resolve the customer so PUT can create the
+         * record when the requested ID does not yet exist.
+         */
+        $customerModel = Customer::find($customer);
+
+        /*
+         * PATCH must remain update-only.
+         * If the customer does not exist, return 404.
+         */
+        if (! $customerModel) {
+            if ($request->isMethod('PATCH')) {
+                return response()->json([
+                    'error' => 'Resource not found.',
+                ], 404);
+            }
+
+            /*
+             * PUT upsert requires enough information to create
+             * a customer record.
+             */
+            $validated = $request->validate([
+                'userId' => [
+                    'sometimes',
+                    'nullable',
+                    'integer',
+                    'exists:users,id',
+                ],
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                ],
+                'email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                ],
+                'phone' => [
+                    'nullable',
+                    'string',
+                    'max:30',
+                ],
+                'address' => [
+                    'nullable',
+                    'string',
+                    'max:1000',
+                ],
+                'vehicleInfo' => [
+                    'nullable',
+                    'string',
+                    'max:1000',
+                ],
+                'encryptedVault' => [
+                    'sometimes',
+                    'nullable',
+                    'array',
+                ],
+            ]);
+
+            $customerModel = DB::transaction(
+                function () use ($validated, $customer) {
+                    $user = null;
+
+                    if (isset($validated['userId'])) {
+                        $user = User::find($validated['userId']);
+
+                        if (
+                            $user
+                            && $user->role !== 'customer'
+                        ) {
+                            throw ValidationException::withMessages([
+                                'userId' => [
+                                    'The selected user is not a customer.',
+                                ],
+                            ]);
+                        }
+                    }
+
+                    /*
+                     * If no user is supplied, find an existing
+                     * customer account by email or create one.
+                     */
+                    if (! $user) {
+                        $existingUser = User::where(
+                            'email',
+                            $validated['email']
+                        )->first();
+
+                        if ($existingUser) {
+                            if ($existingUser->role !== 'customer') {
+                                throw ValidationException::withMessages([
+                                    'email' => [
+                                        'A non-customer user already uses this email.',
+                                    ],
+                                ]);
+                            }
+
+                            $user = $existingUser;
+                        } else {
+                            $user = User::create([
+                                'name' => $validated['name'],
+                                'email' => $validated['email'],
+                                'role' => 'customer',
+                                'password' => Hash::make(
+                                    Str::random(32)
+                                ),
+                            ]);
+                        }
+                    }
+
+                    /*
+                     * Prevent the same user from being attached
+                     * to another customer record.
+                     */
+                    $existingCustomer = Customer::where(
+                        'user_id',
+                        $user->id
+                    )->first();
+
+                    if ($existingCustomer) {
+                        throw ValidationException::withMessages([
+                            'userId' => [
+                                'A customer record already exists for this user.',
+                            ],
+                        ]);
+                    }
+
+                    return Customer::create([
+                        'id' => $customer,
+                        'user_id' => $user->id,
+                        'name' => $validated['name'],
+                        'email' => $validated['email'],
+                        'phone' => $validated['phone'] ?? null,
+                        'address' => $validated['address'] ?? null,
+                        'vehicle_info' =>
+                            $validated['vehicleInfo'] ?? null,
+                        'encrypted_vault' =>
+                            $validated['encryptedVault'] ?? null,
+                    ]);
+                }
+            );
+
+            return response()->json([
+                'message' => 'Customer created successfully.',
+                'data' => $customerModel->fresh(),
+            ], 201);
+        }
+
+        /*
+         * Existing customer:
+         * enforce ownership for customer accounts.
+         */
         if (
             $user->role === 'customer'
-            && $customer->user_id !== $user->id
+            && $customerModel->user_id !== $user->id
         ) {
             abort(403);
         }
@@ -263,8 +419,7 @@ class CustomerController extends Controller
         ]);
 
         /*
-         * userId is only useful for staff-side synchronization.
-         * Customers cannot reassign their customer record to another user.
+         * Customers cannot reassign their record to another user.
          */
         if (
             $user->role === 'customer'
@@ -275,15 +430,14 @@ class CustomerController extends Controller
         }
 
         /*
-         * If a userId is supplied, make sure it belongs to the
-         * same customer record.
+         * Prevent reassignment of an existing customer record.
          */
         if (array_key_exists('userId', $validated)) {
             $requestedUserId = $validated['userId'];
 
             if (
                 $requestedUserId !== null
-                && (int) $requestedUserId !== (int) $customer->user_id
+                && (int) $requestedUserId !== (int) $customerModel->user_id
             ) {
                 throw ValidationException::withMessages([
                     'userId' => [
@@ -310,11 +464,11 @@ class CustomerController extends Controller
             }
         }
 
-        $customer->update($mapped);
+        $customerModel->update($mapped);
 
         return response()->json([
             'message' => 'Customer updated successfully.',
-            'data' => $customer->fresh(),
+            'data' => $customerModel->fresh(),
         ]);
     }
 

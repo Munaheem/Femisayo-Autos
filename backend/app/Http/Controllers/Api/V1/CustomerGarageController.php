@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Resources\AppointmentResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\CustomerResource;
 
 class CustomerGarageController extends Controller
 {
@@ -43,9 +44,9 @@ class CustomerGarageController extends Controller
                 ->latest()
                 ->get();
 
-            return response()->json([
+           return response()->json([
                 'data' => [
-                    'customer' => $customer,
+                    'customer' => (new CustomerResource($customer))->resolve(),
                     'appointments' => AppointmentResource::collection(
                         $appointments
                     )->resolve(),
