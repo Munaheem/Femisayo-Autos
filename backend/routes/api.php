@@ -440,4 +440,19 @@ Route::prefix('v1')->group(function () {
             );
         });
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paystack Webhook
+    |--------------------------------------------------------------------------
+    |
+    | Paystack calls this endpoint directly.
+    | It must NOT require auth:sanctum.
+    |
+    */
+
+    Route::post(
+        'payments/webhook',
+        [PaymentController::class, 'webhook']
+    );
 });

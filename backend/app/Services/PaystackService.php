@@ -9,9 +9,15 @@ class PaystackService
 {
     protected string $baseUrl = 'https://api.paystack.co';
 
+    /**
+     * Initialize a Paystack transaction.
+     *
+     * The application accepts the amount in USD.
+     * Paystack receives the converted NGN amount in kobo.
+     */
     public function initializeTransaction(
         string $email,
-        float $amount,
+        float $amountUsd,
         string $title,
         ?string $description = null
     ): array {
@@ -23,21 +29,54 @@ class PaystackService
             );
         }
 
-        // Paystack expects NGN amounts in kobo.
-        $amountInKobo = (int) round($amount * 100);
+        $ngnPerUsd = (float) config(
+            'services.paystack.ngn_per_usd',
+            1500
+        );
+
+        if ($ngnPerUsd <= 0) {
+            throw new RuntimeException(
+                'Invalid USD to NGN exchange rate.'
+            );
+        }
+
+        /*
+         * Convert the application amount from USD to NGN.
+         */
+        $amountInNaira = $amountUsd * $ngnPerUsd;
+
+        /*
+         * Paystack expects NGN amounts in kobo.
+         */
+        $amountInKobo = (int) round(
+            $amountInNaira * 100
+        );
+
+        if ($amountInKobo <= 0) {
+            throw new RuntimeException(
+                'Payment amount must be greater than zero.'
+            );
+        }
 
         $response = Http::withToken($secretKey)
             ->acceptJson()
+            ->asJson()
+            ->timeout(30)
+            ->retry(2, 1000)
             ->post(
                 $this->baseUrl . '/transaction/initialize',
                 [
                     'email' => $email,
                     'amount' => $amountInKobo,
                     'currency' => 'NGN',
-                    'metadata' => json_encode([
+
+                    'metadata' => [
                         'title' => $title,
                         'description' => $description,
-                    ]),
+                        'amountUsd' => $amountUsd,
+                        'ngnPerUsd' => $ngnPerUsd,
+                        'amountNgn' => $amountInNaira,
+                    ],
                 ]
             );
 
@@ -50,54 +89,75 @@ class PaystackService
 
         $data = $response->json('data');
 
-        if (! $response->json('status') || ! is_array($data)) {
+        if (
+            ! $response->json('status')
+            || ! is_array($data)
+        ) {
             throw new RuntimeException(
                 $response->json('message')
                     ?? 'Paystack transaction initialization failed.'
             );
         }
 
+        if (
+            empty($data['reference'])
+            || empty($data['authorization_url'])
+        ) {
+            throw new RuntimeException(
+                'Paystack returned an incomplete transaction response.'
+            );
+        }
+
         return [
-            'reference' => $data['reference'] ?? null,
-            'authorizationUrl' =>
-                $data['authorization_url'] ?? null,
+            'reference' => $data['reference'],
+            'authorizationUrl' => $data['authorization_url'],
             'accessCode' => $data['access_code'] ?? null,
         ];
-
-        
     }
-    public function verifyTransaction(string $reference): array
-        {
-            $secretKey = config('services.paystack.secret_key');
 
-            if (! $secretKey) {
-                throw new RuntimeException(
-                    'Paystack secret key is not configured.'
-                );
-            }
+    /**
+     * Verify a Paystack transaction.
+     */
+    public function verifyTransaction(
+        string $reference
+    ): array {
+        $secretKey = config('services.paystack.secret_key');
 
-            $response = Http::withToken($secretKey)
-                ->acceptJson()
-                ->get(
-                    $this->baseUrl . '/transaction/verify/' . urlencode($reference)
-                );
+        if (! $secretKey) {
+            throw new RuntimeException(
+                'Paystack secret key is not configured.'
+            );
+        }
 
-            if ($response->failed()) {
-                throw new RuntimeException(
-                    $response->json('message')
-                        ?? 'Unable to verify Paystack transaction.'
-                );
-            }
+        $response = Http::withToken($secretKey)
+            ->acceptJson()
+            ->timeout(30)
+            ->retry(2, 1000)
+            ->get(
+                $this->baseUrl
+                . '/transaction/verify/'
+                . urlencode($reference)
+            );
 
-            $data = $response->json('data');
+        if ($response->failed()) {
+            throw new RuntimeException(
+                $response->json('message')
+                    ?? 'Unable to verify Paystack transaction.'
+            );
+        }
 
-            if (! $response->json('status') || ! is_array($data)) {
-                throw new RuntimeException(
-                    $response->json('message')
-                        ?? 'Paystack transaction verification failed.'
-                );
-            }
+        $data = $response->json('data');
 
-            return $data;
+        if (
+            ! $response->json('status')
+            || ! is_array($data)
+        ) {
+            throw new RuntimeException(
+                $response->json('message')
+                    ?? 'Paystack transaction verification failed.'
+            );
+        }
+
+        return $data;
     }
 }
