@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Payment;
+use App\Models\Appointment;
+use App\Models\Order;
 
 class Customer extends Model
 {
@@ -58,5 +60,21 @@ class Customer extends Model
             Payment::class,
             'customer_id'
         );
+    }
+
+    public function appointments(): HasMany
+        {
+            return $this->hasMany(
+                Appointment::class,
+                'customer_id'
+            );
+    }
+
+    public function orders(): HasMany
+        {
+            return $this->hasMany(
+                Order::class,
+                'customer_id'
+            );
     }
 }
