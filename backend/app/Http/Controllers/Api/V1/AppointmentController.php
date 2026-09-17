@@ -418,6 +418,7 @@ class AppointmentController extends Controller
         Request $request,
         Appointment $appointment
     ) {
+    
         $this->authorizeAppointment(
             $request,
             $appointment

@@ -1,0 +1,11 @@
+﻿{
+  "scheduledTime": "15:00",
+  "additionalServices": [
+    "Brake inspection",
+    "Wheel alignment"
+  ],
+  "customerNotes": "Please also check the brakes carefully.",
+  "technicianNotes": "Inspect brake pads and alignment.",
+  "depositAmount": 30,
+  "paymentStatus": "deposit_paid"
+}
