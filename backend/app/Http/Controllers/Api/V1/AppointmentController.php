@@ -18,6 +18,9 @@ class AppointmentController extends Controller
 {
     /**
      * Display appointments.
+     *
+     * Staff can see all appointments.
+     * Customers can only see their own appointments.
      */
     public function index(Request $request)
     {
@@ -29,21 +32,14 @@ class AppointmentController extends Controller
             'service',
             'technician',
         ])
-            ->latest('date')
+            ->latest('scheduled_date')
             ->latest('scheduled_time');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Customer Scope
-        |--------------------------------------------------------------------------
-        |
-        | Customers can only see their own appointments.
-        | Staff/admin users can see all appointments.
-        |
-        */
-
         if ($user->role === 'customer') {
-            $customer = Customer::where('user_id', $user->id)->first();
+            $customer = Customer::where(
+                'user_id',
+                $user->id
+            )->first();
 
             if (! $customer) {
                 return response()->json([
@@ -51,14 +47,16 @@ class AppointmentController extends Controller
                 ], 404);
             }
 
-            $query->where('customer_id', $customer->id);
+            $query->where(
+                'customer_id',
+                $customer->id
+            );
         }
 
         return AppointmentResource::collection(
             $query->get()
         );
     }
-
 
     /**
      * Create a new appointment.
@@ -86,6 +84,17 @@ class AppointmentController extends Controller
                 'exists:services,id',
             ],
 
+            'additionalServices' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+
+            'additionalServices.*' => [
+                'string',
+                'max:255',
+            ],
+
             'technicianId' => [
                 'nullable',
                 'string',
@@ -98,7 +107,7 @@ class AppointmentController extends Controller
                 'max:255',
             ],
 
-            'date' => [
+            'scheduledDate' => [
                 'required',
                 'date_format:Y-m-d',
             ],
@@ -108,21 +117,40 @@ class AppointmentController extends Controller
                 'date_format:H:i',
             ],
 
-            'notes' => [
+            'customerNotes' => [
                 'nullable',
                 'string',
+                'max:5000',
+            ],
+
+            'technicianNotes' => [
+                'nullable',
+                'string',
+                'max:5000',
+            ],
+
+            'depositAmount' => [
+                'sometimes',
+                'numeric',
+                'min:0',
+            ],
+
+            'paymentStatus' => [
+                'sometimes',
+                'in:pending,deposit_paid,paid,refunded',
+            ],
+
+            'paymentTransactionId' => [
+                'nullable',
+                'string',
+                'max:255',
             ],
         ]);
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Determine Customer
-        |--------------------------------------------------------------------------
-        */
-
+         * Determine customer.
+         */
         if ($user->role === 'customer') {
-
             $customer = Customer::where(
                 'user_id',
                 $user->id
@@ -133,9 +161,7 @@ class AppointmentController extends Controller
                     'error' => 'Customer profile not found.',
                 ], 404);
             }
-
         } else {
-
             if (! isset($validated['customerId'])) {
                 throw ValidationException::withMessages([
                     'customerId' => [
@@ -149,13 +175,9 @@ class AppointmentController extends Controller
             );
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Verify Vehicle Belongs To Customer
-        |--------------------------------------------------------------------------
-        */
-
+         * Verify vehicle belongs to customer.
+         */
         $vehicle = CustomerVehicle::where(
             'id',
             $validated['vehicleId']
@@ -174,13 +196,9 @@ class AppointmentController extends Controller
             ]);
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Get Active Service
-        |--------------------------------------------------------------------------
-        */
-
+         * Get active service.
+         */
         $service = Service::where(
             'id',
             $validated['serviceId']
@@ -197,17 +215,12 @@ class AppointmentController extends Controller
             ], 422);
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Technician Validation
-        |--------------------------------------------------------------------------
-        */
-
+         * Validate technician.
+         */
         $technician = null;
 
         if (! empty($validated['technicianId'])) {
-
             $technician = Technician::find(
                 $validated['technicianId']
             );
@@ -224,27 +237,12 @@ class AppointmentController extends Controller
                 ], 422);
             }
 
-
             /*
-            |--------------------------------------------------------------------------
-            | Duration-Aware Technician Conflict Check
-            |--------------------------------------------------------------------------
-            |
-            | Example:
-            |
-            | Existing appointment:
-            | 10:00 → 10:30
-            |
-            | New appointment:
-            | 10:15 → 10:45
-            |
-            | These appointments overlap and must be rejected.
-            |
-            */
-
+             * Duration-aware conflict check.
+             */
             $requestedStart = Carbon::createFromFormat(
                 'Y-m-d H:i',
-                $validated['date']
+                $validated['scheduledDate']
                     . ' '
                     . $validated['scheduledTime']
             );
@@ -254,15 +252,14 @@ class AppointmentController extends Controller
                     (int) $service->duration_minutes
                 );
 
-
             $existingAppointments = Appointment::with('service')
                 ->where(
                     'technician_id',
                     $technician->id
                 )
                 ->whereDate(
-                    'date',
-                    $validated['date']
+                    'scheduled_date',
+                    $validated['scheduledDate']
                 )
                 ->whereNotIn(
                     'status',
@@ -270,12 +267,10 @@ class AppointmentController extends Controller
                 )
                 ->get();
 
-
             foreach ($existingAppointments as $existingAppointment) {
-
                 $existingStart = Carbon::createFromFormat(
                     'Y-m-d H:i',
-                    $existingAppointment->date->format('Y-m-d')
+                    $existingAppointment->scheduled_date->format('Y-m-d')
                         . ' '
                         . substr(
                             $existingAppointment->scheduled_time,
@@ -284,23 +279,21 @@ class AppointmentController extends Controller
                         )
                 );
 
-
                 $existingServiceDuration =
-                    $existingAppointment->service?->duration_minutes
-                    ?? 60;
-
+                    $existingAppointment
+                        ->service
+                        ?->duration_minutes
+                        ?? 60;
 
                 $existingEnd = $existingStart->copy()
                     ->addMinutes(
                         (int) $existingServiceDuration
                     );
 
-
                 $overlaps =
                     $requestedStart < $existingEnd
                     &&
                     $requestedEnd > $existingStart;
-
 
                 if ($overlaps) {
                     return response()->json([
@@ -311,92 +304,76 @@ class AppointmentController extends Controller
             }
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Create Appointment Atomically
-        |--------------------------------------------------------------------------
-        */
+         * Create appointment atomically.
+         *
+         * Service price remains server-controlled.
+         */
+        $appointment = DB::transaction(
+            function () use (
+                $validated,
+                $customer,
+                $service,
+                $technician
+            ) {
+                return Appointment::create([
+                    'id' => 'apt-' . uniqid(),
 
-        $appointment = DB::transaction(function () use (
-            $validated,
-            $customer,
-            $service,
-            $technician
-        ) {
+                    'customer_id' =>
+                        $customer->id,
 
-            return Appointment::create([
+                    'vehicle_id' =>
+                        $validated['vehicleId'],
 
-                /*
-                | Use a unique appointment ID.
-                */
-                'id' => 'apt-' . uniqid(),
+                    'service_id' =>
+                        $service->id,
 
-                /*
-                | Customer
-                */
-                'customer_id' => $customer->id,
+                    'additional_services' =>
+                        $validated['additionalServices']
+                        ?? null,
 
-                /*
-                | Vehicle
-                */
-                'vehicle_id' => $validated['vehicleId'],
+                    'technician_id' =>
+                        $technician?->id,
 
-                /*
-                | Service
-                */
-                'service_id' => $service->id,
+                    'assigned_technician' =>
+                        $technician?->name
+                        ?? $validated['assignedTechnician']
+                        ?? null,
 
-                /*
-                | Technician
-                */
-                'technician_id' => $technician?->id,
+                    'scheduled_date' =>
+                        $validated['scheduledDate'],
 
-                /*
-                | Display name for frontend compatibility.
-                */
-                'assigned_technician' =>
-                    $technician?->name
-                    ?? $validated['assignedTechnician']
-                    ?? null,
+                    'scheduled_time' =>
+                        $validated['scheduledTime'],
 
-                /*
-                | Schedule
-                */
-                'date' => $validated['date'],
+                    'status' =>
+                        'pending',
 
-                'scheduled_time' =>
-                    $validated['scheduledTime'],
+                    'payment_status' =>
+                        $validated['paymentStatus']
+                        ?? 'pending',
 
-                /*
-                | Initial status
-                */
-                'status' => 'pending',
+                    'customer_notes' =>
+                        $validated['customerNotes']
+                        ?? null,
 
-                /*
-                | Initial payment status
-                */
-                'payment_status' => 'pending',
+                    'technician_notes' =>
+                        $validated['technicianNotes']
+                        ?? null,
 
-                /*
-                | Never trust the frontend price.
-                | Always use the current service price.
-                */
-                'total_price' => $service->price,
+                    'total_cost' =>
+                        $service->price,
 
-                /*
-                | Optional customer notes.
-                */
-                'notes' => $validated['notes'] ?? null,
-            ]);
-        });
+                    'deposit_amount' =>
+                        $validated['depositAmount']
+                        ?? 0,
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Load Relationships
-        |--------------------------------------------------------------------------
-        */
+                    'payment_transaction_id' =>
+                        $validated['paymentTransactionId']
+                        ?? null,
+                ]);
+            }
+        );
 
         $appointment->load([
             'customer',
@@ -405,18 +382,10 @@ class AppointmentController extends Controller
             'technician',
         ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Return 201 Created
-        |--------------------------------------------------------------------------
-        */
-
         return (new AppointmentResource($appointment))
             ->response()
             ->setStatusCode(201);
     }
-
 
     /**
      * Display a specific appointment.
@@ -442,7 +411,6 @@ class AppointmentController extends Controller
         );
     }
 
-
     /**
      * Update an appointment.
      */
@@ -455,15 +423,7 @@ class AppointmentController extends Controller
             $appointment
         );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validate Update
-        |--------------------------------------------------------------------------
-        */
-
         $validated = $request->validate([
-
             'technicianId' => [
                 'sometimes',
                 'nullable',
@@ -478,7 +438,7 @@ class AppointmentController extends Controller
                 'max:255',
             ],
 
-            'date' => [
+            'scheduledDate' => [
                 'sometimes',
                 'date_format:Y-m-d',
             ],
@@ -488,36 +448,62 @@ class AppointmentController extends Controller
                 'date_format:H:i',
             ],
 
-            'paymentStatus' => [
+            'additionalServices' => [
                 'sometimes',
-                'in:pending,paid,failed,refunded',
+                'nullable',
+                'array',
             ],
 
-            'notes' => [
+            'additionalServices.*' => [
+                'string',
+                'max:255',
+            ],
+
+            'customerNotes' => [
                 'sometimes',
                 'nullable',
                 'string',
+                'max:5000',
+            ],
+
+            'technicianNotes' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:5000',
+            ],
+
+            'paymentStatus' => [
+                'sometimes',
+                'in:pending,deposit_paid,paid,refunded',
+            ],
+
+            'depositAmount' => [
+                'sometimes',
+                'numeric',
+                'min:0',
+            ],
+
+            'paymentTransactionId' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
             ],
         ]);
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Technician Reassignment
-        |--------------------------------------------------------------------------
-        */
-
+         * Technician reassignment.
+         */
         if (array_key_exists(
             'technicianId',
             $validated
         )) {
-
             $technician = $validated['technicianId']
                 ? Technician::find(
                     $validated['technicianId']
                 )
                 : null;
-
 
             if (
                 $technician
@@ -530,29 +516,22 @@ class AppointmentController extends Controller
                 ], 422);
             }
 
-
             $appointment->technician_id =
                 $technician?->id;
-
 
             $appointment->assigned_technician =
                 $technician?->name;
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Determine New Date and Time
-        |--------------------------------------------------------------------------
-        */
-
+         * Determine new date and time.
+         */
         $newDate = array_key_exists(
-            'date',
+            'scheduledDate',
             $validated
         )
-            ? $validated['date']
-            : $appointment->date->format('Y-m-d');
-
+            ? $validated['scheduledDate']
+            : $appointment->scheduled_date->format('Y-m-d');
 
         $newTime = array_key_exists(
             'scheduledTime',
@@ -565,29 +544,16 @@ class AppointmentController extends Controller
                 5
             );
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Determine Technician
-        |--------------------------------------------------------------------------
-        */
-
+         * Duration-aware conflict check.
+         */
         $technicianId =
             $appointment->technician_id;
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Duration-Aware Conflict Check
-        |--------------------------------------------------------------------------
-        */
-
         if ($technicianId) {
-
             $service = Service::find(
                 $appointment->service_id
             );
-
 
             if (! $service) {
                 return response()->json([
@@ -596,10 +562,6 @@ class AppointmentController extends Controller
                 ], 422);
             }
 
-
-            /*
-            | Calculate requested appointment window.
-            */
             $requestedStart = Carbon::createFromFormat(
                 'Y-m-d H:i',
                 $newDate
@@ -607,24 +569,18 @@ class AppointmentController extends Controller
                     . $newTime
             );
 
-
             $requestedEnd = $requestedStart->copy()
                 ->addMinutes(
                     (int) $service->duration_minutes
                 );
 
-
-            /*
-            | Get other appointments for this technician
-            | on the requested date.
-            */
             $existingAppointments = Appointment::with('service')
                 ->where(
                     'technician_id',
                     $technicianId
                 )
                 ->whereDate(
-                    'date',
+                    'scheduled_date',
                     $newDate
                 )
                 ->where(
@@ -638,15 +594,15 @@ class AppointmentController extends Controller
                 )
                 ->get();
 
-
             foreach (
                 $existingAppointments
                 as $existingAppointment
             ) {
-
                 $existingStart = Carbon::createFromFormat(
                     'Y-m-d H:i',
-                    $existingAppointment->date->format('Y-m-d')
+                    $existingAppointment
+                        ->scheduled_date
+                        ->format('Y-m-d')
                         . ' '
                         . substr(
                             $existingAppointment->scheduled_time,
@@ -655,29 +611,21 @@ class AppointmentController extends Controller
                         )
                 );
 
-
                 $existingServiceDuration =
                     $existingAppointment
                         ->service
                         ?->duration_minutes
                         ?? 60;
 
-
                 $existingEnd = $existingStart->copy()
                     ->addMinutes(
                         (int) $existingServiceDuration
                     );
 
-
-                /*
-                | Determine whether the two appointment
-                | windows overlap.
-                */
                 $overlaps =
                     $requestedStart < $existingEnd
                     &&
                     $requestedEnd > $existingStart;
-
 
                 if ($overlaps) {
                     return response()->json([
@@ -688,21 +636,16 @@ class AppointmentController extends Controller
             }
         }
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Map Request Fields To Database Fields
-        |--------------------------------------------------------------------------
-        */
-
+         * Map request fields.
+         */
         if (array_key_exists(
-            'date',
+            'scheduledDate',
             $validated
         )) {
-            $appointment->date =
-                $validated['date'];
+            $appointment->scheduled_date =
+                $validated['scheduledDate'];
         }
-
 
         if (array_key_exists(
             'scheduledTime',
@@ -712,12 +655,10 @@ class AppointmentController extends Controller
                 $validated['scheduledTime'];
         }
 
-
-        if (
-            array_key_exists(
-                'assignedTechnician',
-                $validated
-            )
+        if (array_key_exists(
+            'assignedTechnician',
+            $validated
+        )
             &&
             ! array_key_exists(
                 'technicianId',
@@ -728,6 +669,29 @@ class AppointmentController extends Controller
                 $validated['assignedTechnician'];
         }
 
+        if (array_key_exists(
+            'additionalServices',
+            $validated
+        )) {
+            $appointment->additional_services =
+                $validated['additionalServices'];
+        }
+
+        if (array_key_exists(
+            'customerNotes',
+            $validated
+        )) {
+            $appointment->customer_notes =
+                $validated['customerNotes'];
+        }
+
+        if (array_key_exists(
+            'technicianNotes',
+            $validated
+        )) {
+            $appointment->technician_notes =
+                $validated['technicianNotes'];
+        }
 
         if (array_key_exists(
             'paymentStatus',
@@ -737,30 +701,23 @@ class AppointmentController extends Controller
                 $validated['paymentStatus'];
         }
 
-
         if (array_key_exists(
-            'notes',
+            'depositAmount',
             $validated
         )) {
-            $appointment->notes =
-                $validated['notes'];
+            $appointment->deposit_amount =
+                $validated['depositAmount'];
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Save
-        |--------------------------------------------------------------------------
-        */
+        if (array_key_exists(
+            'paymentTransactionId',
+            $validated
+        )) {
+            $appointment->payment_transaction_id =
+                $validated['paymentTransactionId'];
+        }
 
         $appointment->save();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Reload Relationships
-        |--------------------------------------------------------------------------
-        */
 
         $appointment->load([
             'customer',
@@ -769,18 +726,13 @@ class AppointmentController extends Controller
             'technician',
         ]);
 
-
         return new AppointmentResource(
             $appointment
         );
     }
 
-
     /**
      * Update appointment status.
-     *
-     * Status changes are handled separately from general appointment edits
-     * so that the workflow can enforce valid transitions.
      */
     public function updateStatus(
         Request $request,
@@ -790,19 +742,23 @@ class AppointmentController extends Controller
 
         if ($user->role === 'customer') {
             return response()->json([
-                'error' => 'Customers cannot change appointment status.',
+                'error' =>
+                    'Customers cannot change appointment status.',
             ], 403);
         }
 
         $validated = $request->validate([
             'status' => [
                 'required',
-                'in:pending,confirmed,in_progress,completed,cancelled',
+                'in:pending,confirmed,in_inspection,in_repair,quality_check,ready_for_pickup,completed,cancelled',
             ],
         ]);
 
-        $currentStatus = $appointment->status;
-        $newStatus = $validated['status'];
+        $currentStatus =
+            $appointment->status;
+
+        $newStatus =
+            $validated['status'];
 
         if ($currentStatus === $newStatus) {
             $appointment->load([
@@ -812,14 +768,49 @@ class AppointmentController extends Controller
                 'technician',
             ]);
 
-            return new AppointmentResource($appointment);
+            return new AppointmentResource(
+                $appointment
+            );
         }
 
+        /*
+         * Appointment workflow.
+         */
         $allowedTransitions = [
-            'pending' => ['confirmed', 'cancelled'],
-            'confirmed' => ['in_progress', 'cancelled'],
-            'in_progress' => ['completed'],
+            'pending' => [
+                'confirmed',
+                'cancelled',
+            ],
+
+            'confirmed' => [
+                'in_inspection',
+                'cancelled',
+            ],
+
+            'in_inspection' => [
+                'in_repair',
+                'quality_check',
+                'cancelled',
+            ],
+
+            'in_repair' => [
+                'quality_check',
+                'cancelled',
+            ],
+
+            'quality_check' => [
+                'ready_for_pickup',
+                'in_repair',
+                'cancelled',
+            ],
+
+            'ready_for_pickup' => [
+                'completed',
+                'cancelled',
+            ],
+
             'completed' => [],
+
             'cancelled' => [],
         ];
 
@@ -848,15 +839,16 @@ class AppointmentController extends Controller
             'technician',
         ]);
 
-        return new AppointmentResource($appointment);
+        return new AppointmentResource(
+            $appointment
+        );
     }
-
 
     /**
      * Cancel/delete an appointment.
      *
-     * We keep the appointment for history.
-     * DELETE therefore acts as cancellation.
+     * DELETE acts as cancellation so appointment history
+     * is preserved.
      */
     public function destroy(
         Request $request,
@@ -867,49 +859,34 @@ class AppointmentController extends Controller
             $appointment
         );
 
-
         $appointment->update([
             'status' => 'cancelled',
         ]);
 
-
         return response()->noContent();
     }
 
-
     /**
-     * Ensure the authenticated customer can only
-     * access their own appointments.
+     * Ensure customers can only access their own appointments.
      */
     private function authorizeAppointment(
         Request $request,
         Appointment $appointment
     ): void {
-
         $user = $request->user();
 
-
         /*
-        | Staff/admin can access appointments.
-        */
+         * Staff/admin can access appointments.
+         */
         if ($user->role !== 'customer') {
             return;
         }
 
-
-        /*
-        | Find the customer profile belonging
-        | to the authenticated user.
-        */
         $customer = Customer::where(
             'user_id',
             $user->id
         )->first();
 
-
-        /*
-        | Block access to another customer's appointment.
-        */
         if (
             ! $customer
             ||

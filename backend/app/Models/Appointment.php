@@ -18,21 +18,27 @@ class Appointment extends Model
         'customer_id',
         'vehicle_id',
         'service_id',
+        'additional_services',
         'technician_id',
         'assigned_technician',
-        'date',
+        'scheduled_date',
         'scheduled_time',
         'status',
         'payment_status',
-        'total_price',
-        'notes',
+        'customer_notes',
+        'technician_notes',
+        'total_cost',
+        'deposit_amount',
+        'payment_transaction_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'date' => 'date',
-            'total_price' => 'decimal:2',
+            'scheduled_date' => 'date',
+            'additional_services' => 'array',
+            'total_cost' => 'decimal:2',
+            'deposit_amount' => 'decimal:2',
         ];
     }
 
