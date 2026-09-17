@@ -6,31 +6,55 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Http\Resources\AppointmentResource;
+use App\Http\Resources\OrderResource;
 
 class CustomerGarageController extends Controller
 {
     public function index(
-        Request $request,
-        Customer $customer
-    ): JsonResponse {
-        $user = $request->user();
+            Request $request,
+            Customer $customer
+        ): JsonResponse {
+            $user = $request->user();
 
-        if (
-            $user->role === 'customer' &&
-            $customer->user_id !== $user->id
-        ) {
-            abort(403);
-        }
+            if (
+                $user->role === 'customer' &&
+                $customer->user_id !== $user->id
+            ) {
+                return response()->json([
+                    'error' => 'You are not authorized to access this garage.',
+                ], 403);
+            }
 
-        return response()->json([
-            'data' => [
-                'customer' => $customer->load('vehicles'),
-                'appointments' => [],
-                'orders' => [],
-            ],
-        ]);
+            $customer->load('vehicles');
+
+            $appointments = $customer->appointments()
+                ->with([
+                    'customer',
+                    'vehicle',
+                    'service',
+                    'technician',
+                ])
+                ->latest()
+                ->get();
+
+            $orders = $customer->orders()
+                ->with('items')
+                ->latest()
+                ->get();
+
+            return response()->json([
+                'data' => [
+                    'customer' => $customer,
+                    'appointments' => AppointmentResource::collection(
+                        $appointments
+                    )->resolve(),
+                    'orders' => OrderResource::collection(
+                        $orders
+                    )->resolve(),
+                ],
+            ]);
     }
-
     public function store(
         Request $request,
         Customer $customer
@@ -39,7 +63,9 @@ class CustomerGarageController extends Controller
             $request->user()->role === 'customer' &&
             $customer->user_id !== $request->user()->id
         ) {
-            abort(403);
+            return response()->json([
+                'error' => 'You are not authorized to access this garage.',
+            ], 403);
         }
 
         $validated = $request->validate([

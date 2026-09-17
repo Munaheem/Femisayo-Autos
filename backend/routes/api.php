@@ -1,4 +1,3 @@
-```php
 <?php
 
 use App\Http\Controllers\Api\V1\AppointmentController;
@@ -25,15 +24,24 @@ Route::prefix('v1')->group(function () {
 
     Route::prefix('auth')->group(function () {
 
-        Route::post('/register', [
-            AuthController::class,
-            'register',
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Rate Limited Authentication
+        |--------------------------------------------------------------------------
+        */
 
-        Route::post('/login', [
-            AuthController::class,
-            'login',
-        ]);
+        Route::middleware('throttle:auth')->group(function () {
+
+            Route::post('/register', [
+                AuthController::class,
+                'register',
+            ]);
+
+            Route::post('/login', [
+                AuthController::class,
+                'login',
+            ]);
+        });
 
         Route::middleware('auth:sanctum')->group(function () {
 
@@ -93,6 +101,11 @@ Route::prefix('v1')->group(function () {
             Route::get(
                 'customers',
                 [CustomerController::class, 'index']
+            );
+
+            Route::post(
+                'customers',
+                [CustomerController::class, 'store']
             );
         });
 
@@ -414,14 +427,17 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::post(
-            'payments/initialize',
-            [PaymentController::class, 'initialize']
-        );
+        Route::middleware('throttle:payments')->group(function () {
 
-        Route::get(
-            'payments/verify/{reference}',
-            [PaymentController::class, 'verify']
-        );
+            Route::post(
+                'payments/initialize',
+                [PaymentController::class, 'initialize']
+            );
+
+            Route::get(
+                'payments/verify/{reference}',
+                [PaymentController::class, 'verify']
+            );
+        });
     });
 });
