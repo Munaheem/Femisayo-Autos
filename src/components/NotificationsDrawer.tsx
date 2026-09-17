@@ -44,15 +44,15 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
+              {/* {unreadCount > 0 && (
                 <button
                   onClick={onMarkAllRead}
-                  className="text-xs text-zinc-400 hover:text-white font-semibold flex items-center gap-1"
+                  className="text-xs text-zinc-400 hover:text-white font-semibold flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Mark all read
                 </button>
-              )}
+              )} */}
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-lg bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"

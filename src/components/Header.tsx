@@ -494,18 +494,7 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* All prices displayed in Naira */}
-          <div className="pt-3 border-t border-zinc-800/80">
-            <div className="flex items-center justify-between text-xs text-zinc-400 mb-2 px-1">
-              <span className="font-semibold text-zinc-300">Currency:</span>
-              <span className="text-[10px] text-zinc-500 font-mono">₦ Naira (Nigerian Naira)</span>
-            </div>
-            <div className="flex justify-center">
-              <span className="text-xs font-black font-mono text-white px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 w-full text-center">
-                ₦ NGN
-              </span>
-            </div>
-          </div>
+            {/*Removed the price (NGN) display from the header*/}                            
 
           {/* Signed-in account info + Logout in Mobile Menu */}
           <div className="pt-3 border-t border-zinc-800/80">
