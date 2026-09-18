@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 class ServiceController extends Controller
 {
     /**
-     * Display a listing of services.
+     * Display a listing of active services.
      */
     public function index()
     {
@@ -54,7 +54,10 @@ class ServiceController extends Controller
             'is_active' => $validated['isActive'] ?? true,
         ]);
 
-        return new ServiceResource($service);
+        return response()->json(
+            new ServiceResource($service),
+            201
+        );
     }
 
     /**
@@ -66,18 +69,28 @@ class ServiceController extends Controller
     }
 
     /**
-     * Update the specified service.
+     * Update the specified service or create it when using PUT
+     * and the requested service ID does not exist.
      */
-    public function update(Request $request, Service $service)
+    public function update(Request $request, string $service)
     {
+        $existingService = Service::find($service);
+
+        // PATCH must only update an existing service.
+        if (! $existingService && $request->isMethod('PATCH')) {
+            return response()->json([
+                'error' => 'Resource not found.',
+            ], 404);
+        }
+
         $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'category' => ['sometimes', 'string', 'max:255'],
-            'price' => ['sometimes', 'numeric', 'min:0'],
-            'durationMinutes' => ['sometimes', 'integer', 'min:1'],
-            'description' => ['nullable', 'string'],
-            'recommendedMileage' => ['nullable', 'string', 'max:255'],
-            'features' => ['nullable', 'array'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'category' => ['sometimes', 'required', 'string', 'max:255'],
+            'price' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'durationMinutes' => ['sometimes', 'required', 'integer', 'min:1'],
+            'description' => ['sometimes', 'nullable', 'string'],
+            'recommendedMileage' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'features' => ['sometimes', 'nullable', 'array'],
             'popular' => ['sometimes', 'boolean'],
             'featured' => ['sometimes', 'boolean'],
             'isActive' => ['sometimes', 'boolean'],
@@ -125,9 +138,36 @@ class ServiceController extends Controller
             $data['is_active'] = $validated['isActive'];
         }
 
-        $service->update($data);
+        /*
+         * PUT supports update-or-create (upsert).
+         *
+         * A missing PUT creates the service using the exact
+         * ID supplied in the URL.
+         */
+        if (! $existingService) {
+            $serviceModel = Service::create([
+                'id' => $service,
+                'name' => $validated['name'],
+                'category' => $validated['category'],
+                'price' => $validated['price'],
+                'duration_minutes' => $validated['durationMinutes'],
+                'description' => $validated['description'] ?? null,
+                'recommended_mileage' => $validated['recommendedMileage'] ?? null,
+                'features' => $validated['features'] ?? [],
+                'popular' => $validated['popular'] ?? false,
+                'featured' => $validated['featured'] ?? false,
+                'is_active' => $validated['isActive'] ?? true,
+            ]);
 
-        return new ServiceResource($service->fresh());
+            return response()->json(
+                new ServiceResource($serviceModel),
+                201
+            );
+        }
+
+        $existingService->update($data);
+
+        return new ServiceResource($existingService->fresh());
     }
 
     /**

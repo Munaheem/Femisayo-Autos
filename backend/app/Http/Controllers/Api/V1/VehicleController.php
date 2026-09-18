@@ -70,8 +70,17 @@ class VehicleController extends Controller
         return new VehicleResource($vehicle);
     }
 
-    public function update(Request $request, Vehicle $vehicle)
+    public function update(Request $request, string $vehicle)
     {
+        $existingVehicle = Vehicle::find($vehicle);
+
+        // PATCH must only update an existing vehicle.
+        if (! $existingVehicle && $request->isMethod('PATCH')) {
+            return response()->json([
+                'error' => 'Resource not found.',
+            ], 404);
+        }
+
         $validated = $request->validate([
             'make' => ['sometimes', 'required', 'string', 'max:100'],
             'model' => ['sometimes', 'required', 'string', 'max:100'],
@@ -89,7 +98,7 @@ class VehicleController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                'unique:vehicles,vin,' . $vehicle->id . ',id',
+                'unique:vehicles,vin,' . $vehicle . ',id',
             ],
             'color' => ['sometimes', 'nullable', 'string', 'max:100'],
             'inStock' => ['sometimes', 'boolean'],
@@ -112,11 +121,40 @@ class VehicleController extends Controller
             }
         }
 
-        $vehicle->update($validated);
+        // PUT supports update-or-create (upsert).
+        if (! $existingVehicle) {
+            $vehicleModel = Vehicle::create([
+                'id' => $vehicle,
+                'make' => $validated['make'],
+                'model' => $validated['model'],
+                'year' => $validated['year'],
+                'price' => $validated['price'],
+                'mileage' => $validated['mileage'] ?? 0,
+                'transmission' => $validated['transmission'],
+                'fuel' => $validated['fuel'],
+                'body_type' => $validated['body_type'],
+                'horsepower' => $validated['horsepower'] ?? null,
+                'zero_to_sixty' => $validated['zero_to_sixty'] ?? null,
+                'engine' => $validated['engine'] ?? null,
+                'vin' => $validated['vin'] ?? null,
+                'color' => $validated['color'] ?? null,
+                'in_stock' => $validated['in_stock'] ?? true,
+                'image' => $validated['image'] ?? null,
+                'gallery' => $validated['gallery'] ?? [],
+                'badges' => $validated['badges'] ?? [],
+                'features' => $validated['features'] ?? [],
+            ]);
 
-        return new VehicleResource($vehicle->fresh());
+            return response()->json(
+                new VehicleResource($vehicleModel),
+                201
+            );
+        }
+
+        $existingVehicle->update($validated);
+
+        return new VehicleResource($existingVehicle->fresh());
     }
-    
 
     public function destroy(Vehicle $vehicle)
     {
