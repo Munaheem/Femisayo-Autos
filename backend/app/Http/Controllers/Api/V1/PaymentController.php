@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Services\LoyaltyService;
 use App\Services\PaystackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ use Throwable;
 class PaymentController extends Controller
 {
     public function __construct(
-        protected PaystackService $paystack
+        protected PaystackService $paystack,
+        protected LoyaltyService $loyalty
     ) {}
 
     /**
@@ -161,16 +163,20 @@ class PaymentController extends Controller
                 default => 'pending',
             };
 
-            $payment->update([
-                'status' => $status,
-            ]);
+            if ($status === 'paid') {
+                $this->loyalty->applyPaidPayment($payment);
+            } else {
+                $payment->update([
+                    'status' => $status,
+                ]);
+            }
 
             return response()->json([
-                'reference' => $payment->reference,
-                'status' => $payment->status,
-                'amount' => (float) $payment->amount,
-                'currency' => $payment->currency,
-                'gateway' => $payment->gateway,
+                'reference' => $payment->fresh()->reference,
+                'status' => $payment->fresh()->status,
+                'amount' => (float) $payment->fresh()->amount,
+                'currency' => $payment->fresh()->currency,
+                'gateway' => $payment->fresh()->gateway,
             ]);
 
         } catch (Throwable $e) {
@@ -350,9 +356,13 @@ class PaymentController extends Controller
             default => 'pending',
         };
 
-        $payment->update([
-            'status' => $status,
-        ]);
+        if ($status === 'paid') {
+            $this->loyalty->applyPaidPayment($payment);
+        } else {
+            $payment->update([
+                'status' => $status,
+            ]);
+        }
 
         Log::info(
             'Paystack webhook processed successfully.',
