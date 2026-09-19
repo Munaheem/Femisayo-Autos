@@ -1862,8 +1862,10 @@ export const loadParts = () => loadFromStorage<PartItem[]>('apex_parts', INITIAL
 export const saveParts = (data: PartItem[]) => saveToStorage('apex_parts', data);
 
 export const loadCustomers = () => loadFromStorage<CustomerRecord[]>('apex_customers', INITIAL_CUSTOMERS);
-export const saveCustomers = (data: CustomerRecord[]) => saveToStorage('apex_customers', data);
-
+export const saveCustomers = (data: CustomerRecord[]) => {
+  const safeCustomers = data.map(({ encryptedVault, ...customer }) => customer);
+  saveToStorage('apex_customers', safeCustomers);
+};
 export const loadOrders = () => loadFromStorage<Order[]>('apex_orders', INITIAL_ORDERS);
 export const saveOrders = (data: Order[]) => saveToStorage('apex_orders', data);
 

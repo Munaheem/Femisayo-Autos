@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\User;
+use App\Services\CustomerVaultService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,11 @@ use Illuminate\Validation\ValidationException;
 
 class CustomerController extends Controller
 {
+    public function __construct(
+        protected CustomerVaultService $vaultService
+    ) {
+    }
+
     /**
      * Get all customers.
      *
