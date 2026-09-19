@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
+use App\Models\Customer as CustomerModel;
 use App\Models\User;
 use App\Services\CustomerVaultService;
 use Illuminate\Http\JsonResponse;
@@ -27,18 +27,16 @@ class CustomerController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        abort_unless(
-            in_array(
-                $request->user()->role,
-                ['admin', 'sales', 'technician'],
-                true
-            ),
-            403
-        );
+        $this->authorizeStaff($request);
 
-        $customers = Customer::with('vehicles')
+        $customers = CustomerModel::with('vehicles')
             ->latest()
             ->get();
+
+        $customers->each(
+            fn (CustomerModel $customer) =>
+                $this->prepareVaultForResponse($customer)
+        );
 
         return response()->json([
             'data' => $customers,
@@ -52,136 +50,43 @@ class CustomerController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        abort_unless(
-            in_array(
-                $request->user()->role,
-                ['admin', 'sales', 'technician'],
-                true
-            ),
-            403
-        );
+        $this->authorizeStaff($request);
 
-        $validated = $request->validate([
-            'userId' => [
-                'sometimes',
-                'nullable',
-                'integer',
-                'exists:users,id',
-            ],
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-            ],
-            'phone' => [
-                'nullable',
-                'string',
-                'max:30',
-            ],
-            'address' => [
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-            'vehicleInfo' => [
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-            'encryptedVault' => [
-                'sometimes',
-                'nullable',
-                'array',
-            ],
-        ]);
+        $validated = $this->validateCustomerData($request);
 
         $customer = DB::transaction(function () use ($validated) {
+            $user = $this->resolveOrCreateCustomerUser($validated);
 
-            $user = null;
+            $this->ensureUserDoesNotAlreadyHaveCustomer($user);
 
-            if (isset($validated['userId'])) {
-                $user = User::find($validated['userId']);
+            $vaultKey = $this->vaultService->generateKey();
 
-                if (
-                    $user
-                    && $user->role !== 'customer'
-                ) {
-                    throw ValidationException::withMessages([
-                        'userId' => [
-                            'The selected user is not a customer.',
-                        ],
-                    ]);
-                }
-            }
-
-            /*
-             * If no user is supplied, create a customer login account.
-             */
-            if (! $user) {
-                $existingUser = User::where(
-                    'email',
-                    $validated['email']
-                )->first();
-
-                if ($existingUser) {
-                    if ($existingUser->role !== 'customer') {
-                        throw ValidationException::withMessages([
-                            'email' => [
-                                'A non-customer user already uses this email.',
-                            ],
-                        ]);
-                    }
-
-                    $user = $existingUser;
-                } else {
-                    $user = User::create([
-                        'name' => $validated['name'],
-                        'email' => $validated['email'],
-                        'role' => 'customer',
-                        'password' => Hash::make(
-                            Str::random(32)
-                        ),
-                    ]);
-                }
-            }
-
-            /*
-             * Prevent duplicate customer records for one user.
-             */
-            $existingCustomer = Customer::where(
-                'user_id',
-                $user->id
-            )->first();
-
-            if ($existingCustomer) {
-                throw ValidationException::withMessages([
-                    'userId' => [
-                        'A customer record already exists for this user.',
-                    ],
-                ]);
-            }
-
-            return Customer::create([
+            $customer = Customer::create([
                 'user_id' => $user->id,
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'phone' => $validated['phone'] ?? null,
                 'address' => $validated['address'] ?? null,
-                'vehicle_info' =>
-                    $validated['vehicleInfo'] ?? null,
-                'encrypted_vault' =>
+                'vehicle_info' => $validated['vehicleInfo'] ?? null,
+                'encrypted_vault' => $this->encryptIncomingVault(
                     $validated['encryptedVault'] ?? null,
+                    $vaultKey
+                ),
+                'encrypted_vault_key' => $this->vaultService->protectKey(
+                    $vaultKey
+                ),
             ]);
+
+            return $customer;
         });
+
+        $customer->load('vehicles');
+
+        $this->prepareVaultForResponse($customer);
 
         return response()->json([
             'message' => 'Customer created successfully.',
-            'data' => $customer->fresh(),
+            'data' => $customer,
         ], 201);
     }
 
@@ -194,19 +99,14 @@ class CustomerController extends Controller
         Request $request,
         Customer $customer
     ): JsonResponse {
-        $user = $request->user();
+        $this->authorizeCustomerAccess($request, $customer);
 
-        if (
-            $user->role === 'customer'
-            && $customer->user_id !== $user->id
-        ) {
-            return response()->json([
-                'error' => 'You are not authorized to access this customer.',
-            ], 403);
-        }
+        $customer->load('vehicles');
+
+        $this->prepareVaultForResponse($customer);
 
         return response()->json([
-            'data' => $customer->load('vehicles'),
+            'data' => $customer,
         ]);
     }
 
@@ -222,133 +122,37 @@ class CustomerController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        /*
-         * Manually resolve the customer so PUT can create the
-         * record when the requested ID does not yet exist.
-         */
         $customerModel = Customer::find($customer);
 
         /*
          * PATCH must remain update-only.
-         * If the customer does not exist, return 404.
+         */
+        if (! $customerModel && $request->isMethod('PATCH')) {
+            return response()->json([
+                'error' => 'Resource not found.',
+            ], 404);
+        }
+
+        /*
+         * PUT upsert.
          */
         if (! $customerModel) {
-            if ($request->isMethod('PATCH')) {
-                return response()->json([
-                    'error' => 'Resource not found.',
-                ], 404);
-            }
+            $this->authorizeStaff($request);
 
-            /*
-             * PUT upsert requires enough information to create
-             * a customer record.
-             */
-            $validated = $request->validate([
-                'userId' => [
-                    'sometimes',
-                    'nullable',
-                    'integer',
-                    'exists:users,id',
-                ],
-                'name' => [
-                    'required',
-                    'string',
-                    'max:255',
-                ],
-                'email' => [
-                    'required',
-                    'email',
-                    'max:255',
-                ],
-                'phone' => [
-                    'nullable',
-                    'string',
-                    'max:30',
-                ],
-                'address' => [
-                    'nullable',
-                    'string',
-                    'max:1000',
-                ],
-                'vehicleInfo' => [
-                    'nullable',
-                    'string',
-                    'max:1000',
-                ],
-                'encryptedVault' => [
-                    'sometimes',
-                    'nullable',
-                    'array',
-                ],
-            ]);
+            $validated = $this->validateCustomerData(
+                $request,
+                true
+            );
 
             $customerModel = DB::transaction(
                 function () use ($validated, $customer) {
-                    $user = null;
+                    $user = $this->resolveOrCreateCustomerUser(
+                        $validated
+                    );
 
-                    if (isset($validated['userId'])) {
-                        $user = User::find($validated['userId']);
+                    $this->ensureUserDoesNotAlreadyHaveCustomer($user);
 
-                        if (
-                            $user
-                            && $user->role !== 'customer'
-                        ) {
-                            throw ValidationException::withMessages([
-                                'userId' => [
-                                    'The selected user is not a customer.',
-                                ],
-                            ]);
-                        }
-                    }
-
-                    /*
-                     * If no user is supplied, find an existing
-                     * customer account by email or create one.
-                     */
-                    if (! $user) {
-                        $existingUser = User::where(
-                            'email',
-                            $validated['email']
-                        )->first();
-
-                        if ($existingUser) {
-                            if ($existingUser->role !== 'customer') {
-                                throw ValidationException::withMessages([
-                                    'email' => [
-                                        'A non-customer user already uses this email.',
-                                    ],
-                                ]);
-                            }
-
-                            $user = $existingUser;
-                        } else {
-                            $user = User::create([
-                                'name' => $validated['name'],
-                                'email' => $validated['email'],
-                                'role' => 'customer',
-                                'password' => Hash::make(
-                                    Str::random(32)
-                                ),
-                            ]);
-                        }
-                    }
-
-                    /*
-                     * Prevent the same user from being attached
-                     * to another customer record.
-                     */
-                    $existingCustomer = Customer::where(
-                        'user_id',
-                        $user->id
-                    )->first();
-
-                    if ($existingCustomer) {
-                        throw ValidationException::withMessages([
-                            'userId' => [
-                                'A customer record already exists for this user.',
-                            ],
-                        ]);
-                    }
+                    $vaultKey = $this->vaultService->generateKey();
 
                     return Customer::create([
                         'id' => $customer,
@@ -360,90 +164,75 @@ class CustomerController extends Controller
                         'vehicle_info' =>
                             $validated['vehicleInfo'] ?? null,
                         'encrypted_vault' =>
-                            $validated['encryptedVault'] ?? null,
+                            $this->encryptIncomingVault(
+                                $validated['encryptedVault'] ?? null,
+                                $vaultKey
+                            ),
+                        'encrypted_vault_key' =>
+                            $this->vaultService->protectKey(
+                                $vaultKey
+                            ),
                     ]);
                 }
             );
 
+            $customerModel->load('vehicles');
+
+            $this->prepareVaultForResponse($customerModel);
+
             return response()->json([
                 'message' => 'Customer created successfully.',
-                'data' => $customerModel->fresh(),
+                'data' => $customerModel,
             ], 201);
         }
 
         /*
-         * Existing customer:
-         * enforce ownership for customer accounts.
+         * Existing customer.
+         *
+         * Customers may update only their own record.
          */
         if (
             $user->role === 'customer'
-            && $customerModel->user_id !== $user->id
+            && (int) $customerModel->user_id !== (int) $user->id
         ) {
-            abort(403);
+            return response()->json([
+                'error' => 'You are not authorized to update this customer.',
+            ], 403);
         }
 
-        $validated = $request->validate([
-            'userId' => [
-                'sometimes',
-                'nullable',
-                'integer',
-                'exists:users,id',
-            ],
-            'name' => [
-                'sometimes',
-                'string',
-                'max:255',
-            ],
-            'email' => [
-                'sometimes',
-                'email',
-                'max:255',
-            ],
-            'phone' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:30',
-            ],
-            'address' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-            'vehicleInfo' => [
-                'sometimes',
-                'nullable',
-                'string',
-                'max:1000',
-            ],
-            'encryptedVault' => [
-                'sometimes',
-                'nullable',
-                'array',
-            ],
-        ]);
+        /*
+         * Staff may update customer records.
+         * Customers may update their own records.
+         */
+        $validated = $this->validateCustomerData(
+            $request,
+            false
+        );
 
         /*
-         * Customers cannot reassign their record to another user.
+         * Customers cannot reassign their record.
          */
         if (
             $user->role === 'customer'
             && array_key_exists('userId', $validated)
+            && $validated['userId'] !== null
             && (int) $validated['userId'] !== (int) $user->id
         ) {
-            abort(403);
+            return response()->json([
+                'error' => 'You cannot reassign your customer record.',
+            ], 403);
         }
 
         /*
-         * Prevent reassignment of an existing customer record.
+         * Existing customer records cannot be reassigned.
          */
         if (array_key_exists('userId', $validated)) {
             $requestedUserId = $validated['userId'];
 
             if (
                 $requestedUserId !== null
-                && (int) $requestedUserId !== (int) $customerModel->user_id
+                && (int) $requestedUserId !==
+                    (int) $customerModel->user_id
             ) {
                 throw ValidationException::withMessages([
                     'userId' => [
@@ -461,7 +250,6 @@ class CustomerController extends Controller
             'phone' => 'phone',
             'address' => 'address',
             'vehicleInfo' => 'vehicle_info',
-            'encryptedVault' => 'encrypted_vault',
         ];
 
         foreach ($fieldMap as $input => $column) {
@@ -470,11 +258,37 @@ class CustomerController extends Controller
             }
         }
 
+        /*
+         * Handle vault updates.
+         */
+        if (array_key_exists('encryptedVault', $validated)) {
+            if ($validated['encryptedVault'] === null) {
+                $mapped['encrypted_vault'] = null;
+            } else {
+                $vaultKey = $this->getOrCreateVaultKey(
+                    $customerModel,
+                    $mapped
+                );
+
+                $mapped['encrypted_vault'] =
+                    $this->vaultService->encrypt(
+                        $validated['encryptedVault'],
+                        $vaultKey
+                    );
+            }
+        }
+
         $customerModel->update($mapped);
+
+        $customerModel = $customerModel->fresh([
+            'vehicles',
+        ]);
+
+        $this->prepareVaultForResponse($customerModel);
 
         return response()->json([
             'message' => 'Customer updated successfully.',
-            'data' => $customerModel->fresh(),
+            'data' => $customerModel,
         ]);
     }
 
@@ -492,8 +306,274 @@ class CustomerController extends Controller
             403
         );
 
-        $customer->delete();
+        DB::transaction(function () use ($customer) {
+            $customer->delete();
+        });
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Validate customer input.
+     */
+    protected function validateCustomerData(
+        Request $request,
+        bool $creating = false
+    ): array {
+        $nameRules = $creating
+            ? ['required', 'string', 'max:255']
+            : ['sometimes', 'string', 'max:255'];
+
+        $emailRules = $creating
+            ? ['required', 'email', 'max:255']
+            : ['sometimes', 'email', 'max:255'];
+
+        return $request->validate([
+            'userId' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'exists:users,id',
+            ],
+
+            'name' => $nameRules,
+
+            'email' => $emailRules,
+
+            'phone' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:30',
+            ],
+
+            'address' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
+            'vehicleInfo' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
+            'encryptedVault' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+        ]);
+    }
+
+    /**
+     * Resolve an existing customer user or create one.
+     */
+    protected function resolveOrCreateCustomerUser(
+        array $validated
+    ): User {
+        $user = null;
+
+        if (
+            array_key_exists('userId', $validated)
+            && $validated['userId'] !== null
+        ) {
+            $user = User::find($validated['userId']);
+
+            if (! $user) {
+                throw ValidationException::withMessages([
+                    'userId' => [
+                        'The selected user does not exist.',
+                    ],
+                ]);
+            }
+
+            if ($user->role !== 'customer') {
+                throw ValidationException::withMessages([
+                    'userId' => [
+                        'The selected user is not a customer.',
+                    ],
+                ]);
+            }
+
+            return $user;
+        }
+
+        $existingUser = User::where(
+            'email',
+            $validated['email']
+        )->first();
+
+        if ($existingUser) {
+            if ($existingUser->role !== 'customer') {
+                throw ValidationException::withMessages([
+                    'email' => [
+                        'A non-customer user already uses this email.',
+                    ],
+                ]);
+            }
+
+            return $existingUser;
+        }
+
+        return User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'role' => 'customer',
+            'password' => Hash::make(
+                Str::random(32)
+            ),
+        ]);
+    }
+
+    /**
+     * Ensure one user cannot own multiple customer records.
+     */
+    protected function ensureUserDoesNotAlreadyHaveCustomer(
+        User $user
+    ): void {
+        $existingCustomer = Customer::where(
+            'user_id',
+            $user->id
+        )->first();
+
+        if ($existingCustomer) {
+            throw ValidationException::withMessages([
+                'userId' => [
+                    'A customer record already exists for this user.',
+                ],
+            ]);
+        }
+    }
+
+    /**
+     * Encrypt the incoming frontend vault.
+     */
+    protected function encryptIncomingVault(
+        ?array $encryptedVault,
+        string $vaultKey
+    ): ?array {
+        if ($encryptedVault === null) {
+            return null;
+        }
+
+        return $this->vaultService->encrypt(
+            $encryptedVault,
+            $vaultKey
+        );
+    }
+
+    /**
+     * Get the existing vault key or create one for a legacy customer.
+     */
+    protected function getOrCreateVaultKey(
+        Customer $customer,
+        array &$mapped
+    ): string {
+        if ($customer->encrypted_vault_key) {
+            return $this->vaultService->unprotectKey(
+                $customer->encrypted_vault_key
+            );
+        }
+
+        $vaultKey = $this->vaultService->generateKey();
+
+        $mapped['encrypted_vault_key'] =
+            $this->vaultService->protectKey(
+                $vaultKey
+            );
+
+        return $vaultKey;
+    }
+
+    /**
+     * Authorize staff access.
+     */
+    protected function authorizeStaff(
+        Request $request
+    ): void {
+        abort_unless(
+            in_array(
+                $request->user()->role,
+                [
+                    'admin',
+                    'sales',
+                    'technician',
+                ],
+                true
+            ),
+            403
+        );
+    }
+
+    /**
+     * Authorize access to a specific customer.
+     */
+    protected function authorizeCustomerAccess(
+        Request $request,
+        Customer $customer
+    ): void {
+        $user = $request->user();
+
+        if (
+            $user->role === 'customer'
+            && (int) $customer->user_id !== (int) $user->id
+        ) {
+            abort(403, 'You are not authorized to access this customer.');
+        }
+    }
+
+    /**
+     * Convert the server-protected vault back into the
+     * original frontend vault format for an authorized response.
+     *
+     * The server encryption key is NEVER included.
+     */
+    protected function prepareVaultForResponse(
+        Customer $customer
+    ): Customer {
+        if (
+            ! $customer->encrypted_vault
+            || ! $customer->encrypted_vault_key
+        ) {
+            $customer->makeHidden([
+                'encrypted_vault_key',
+            ]);
+
+            return $customer;
+        }
+
+        try {
+            $vaultKey = $this->vaultService->unprotectKey(
+                $customer->encrypted_vault_key
+            );
+
+            $decryptedVault = $this->vaultService->decrypt(
+                $customer->encrypted_vault,
+                $vaultKey
+            );
+
+            $customer->setAttribute(
+                'encrypted_vault',
+                $decryptedVault
+            );
+        } catch (\Throwable $e) {
+            /*
+             * Never expose encryption internals.
+             */
+            $customer->setAttribute(
+                'encrypted_vault',
+                null
+            );
+        }
+
+        $customer->makeHidden([
+            'encrypted_vault_key',
+        ]);
+
+        return $customer;
     }
 }

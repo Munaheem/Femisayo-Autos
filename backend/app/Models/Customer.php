@@ -6,9 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Payment;
-use App\Models\Appointment;
-use App\Models\Order;
 
 class Customer extends Model
 {
@@ -25,6 +22,15 @@ class Customer extends Model
         'loyalty_points',
         'tier',
         'encrypted_vault',
+        'encrypted_vault_key',
+    ];
+
+    /**
+     * Never expose the server-side customer vault key
+     * in API responses.
+     */
+    protected $hidden = [
+        'encrypted_vault_key',
     ];
 
     protected function casts(): array
@@ -36,17 +42,29 @@ class Customer extends Model
         ];
     }
 
+    /**
+     * Customer login account.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Customer vehicles.
+     */
     public function vehicles(): HasMany
     {
-        return $this->hasMany(CustomerVehicle::class);
+        return $this->hasMany(
+            CustomerVehicle::class,
+            'customer_id'
+        );
     }
 
-    public function wishlistItems()
+    /**
+     * Customer wishlist items.
+     */
+    public function wishlistItems(): HasMany
     {
         return $this->hasMany(
             WishlistItem::class,
@@ -54,7 +72,10 @@ class Customer extends Model
         );
     }
 
-    public function payments()
+    /**
+     * Customer payments.
+     */
+    public function payments(): HasMany
     {
         return $this->hasMany(
             Payment::class,
@@ -62,19 +83,25 @@ class Customer extends Model
         );
     }
 
+    /**
+     * Customer appointments.
+     */
     public function appointments(): HasMany
-        {
-            return $this->hasMany(
-                Appointment::class,
-                'customer_id'
-            );
+    {
+        return $this->hasMany(
+            Appointment::class,
+            'customer_id'
+        );
     }
 
+    /**
+     * Customer orders.
+     */
     public function orders(): HasMany
-        {
-            return $this->hasMany(
-                Order::class,
-                'customer_id'
-            );
+    {
+        return $this->hasMany(
+            Order::class,
+            'customer_id'
+        );
     }
 }
