@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer;
 use App\Models\Payment;
 use App\Services\LoyaltyService;
 use App\Services\PaystackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 class PaymentController extends Controller
@@ -18,10 +19,14 @@ class PaymentController extends Controller
     public function __construct(
         protected PaystackService $paystack,
         protected LoyaltyService $loyalty
-    ) {}
+    ) {
+    }
 
     /**
      * Initialize a Paystack payment.
+     *
+     * The application accepts the amount in USD.
+     * Paystack receives the converted NGN amount in kobo.
      */
     public function initialize(Request $request): JsonResponse
     {
@@ -50,19 +55,88 @@ class PaymentController extends Controller
 
         $user = $request->user();
 
-        $customer = Customer::where(
-            'user_id',
-            $user->id
-        )->first();
+        $customer = DB::table('customers')
+            ->where('user_id', $user->id)
+            ->first();
 
         try {
+            /*
+             * Capture the exchange rate at payment creation time.
+             *
+             * This rate becomes part of the payment snapshot and will
+             * be used later for verification instead of the current
+             * application-wide rate.
+             */
+            $ngnPerUsd = (float) config(
+                'services.paystack.ngn_per_usd',
+                1500
+            );
+
+            if ($ngnPerUsd <= 0) {
+                throw new RuntimeException(
+                    'Invalid USD to NGN exchange rate.'
+                );
+            }
+
+            /*
+             * The application amount is in USD.
+             */
+            $amountUsd = (float) $validated['amount'];
+
+            if ($amountUsd <= 0) {
+                throw new RuntimeException(
+                    'Payment amount must be greater than zero.'
+                );
+            }
+
+            /*
+             * Convert USD to NGN using the rate captured above.
+             */
+            $amountInNaira = round(
+                $amountUsd * $ngnPerUsd,
+                2
+            );
+
+            /*
+             * Paystack expects NGN amounts in kobo.
+             */
+            $amountInKobo = (int) round(
+                $amountInNaira * 100
+            );
+
+            if ($amountInKobo <= 0) {
+                throw new RuntimeException(
+                    'Payment amount must be greater than zero.'
+                );
+            }
+
+            /*
+             * Create our local payment record first.
+             *
+             * The USD amount, NGN/kobo amount, and exchange rate are
+             * permanently captured so future exchange-rate changes
+             * cannot affect this payment.
+             */
             $payment = Payment::create([
                 'reference' => 'PAY-' . strtoupper(
                     Str::random(16)
                 ),
+
                 'customer_id' => $customer?->id,
-                'amount' => $validated['amount'],
+
+                // Original application amount.
+                'amount' => $amountUsd,
+
+                // Immutable payment snapshot.
+                'amount_usd' => $amountUsd,
+                'amount_kobo' => $amountInKobo,
+                'ngn_per_usd' => $ngnPerUsd,
+
+                /*
+                 * The gateway transaction is denominated in NGN.
+                 */
                 'currency' => 'NGN',
+
                 'email' => $validated['email'],
                 'title' => $validated['title'],
                 'description' =>
@@ -71,19 +145,27 @@ class PaymentController extends Controller
                 'gateway' => 'paystack',
             ]);
 
+            /*
+             * Initialize the Paystack transaction.
+             */
             $paystack = $this->paystack->initializeTransaction(
                 $validated['email'],
-                (float) $validated['amount'],
+                $amountUsd,
                 $validated['title'],
                 $validated['description'] ?? null
             );
 
+            /*
+             * Store the actual Paystack reference and checkout data.
+             */
             $payment->update([
                 'reference' =>
                     $paystack['reference']
                     ?? $payment->reference,
+
                 'authorization_url' =>
                     $paystack['authorizationUrl'] ?? null,
+
                 'access_code' =>
                     $paystack['accessCode'] ?? null,
             ]);
@@ -101,8 +183,7 @@ class PaymentController extends Controller
                 'Paystack transaction initialization failed.',
                 [
                     'user_id' => $user->id,
-                    'email' => $validated['email'],
-                    'amount' => $validated['amount'],
+                    'payment_id' => $payment->id ?? null,
                     'error' => $e->getMessage(),
                 ]
             );
@@ -151,9 +232,47 @@ class PaymentController extends Controller
             ], 403);
         }
 
+        /*
+         * A completed payment does not need to be verified again.
+         */
+        if ($payment->status === 'paid') {
+            return response()->json([
+                'reference' => $payment->reference,
+                'status' => $payment->status,
+                'amount' => (float) $payment->amount,
+                'currency' => $payment->currency,
+                'gateway' => $payment->gateway,
+            ]);
+        }
+
         try {
             $transaction = $this->paystack
                 ->verifyTransaction($payment->reference);
+
+            /*
+             * Validate the transaction returned by Paystack
+             * before changing our local payment status.
+             *
+             * The comparison uses amount_kobo captured when
+             * this payment was initialized.
+             */
+            if (! $this->paystackTransactionMatchesPayment(
+                $transaction,
+                $payment
+            )) {
+                Log::warning(
+                    'Paystack verification amount or currency mismatch.',
+                    [
+                        'payment_id' => $payment->id,
+                        'reference' => $payment->reference,
+                    ]
+                );
+
+                return response()->json([
+                    'error' =>
+                        'Payment verification data does not match the expected transaction.',
+                ], 422);
+            }
 
             $paystackStatus = $transaction['status'] ?? null;
 
@@ -171,12 +290,14 @@ class PaymentController extends Controller
                 ]);
             }
 
+            $payment = $payment->fresh();
+
             return response()->json([
-                'reference' => $payment->fresh()->reference,
-                'status' => $payment->fresh()->status,
-                'amount' => (float) $payment->fresh()->amount,
-                'currency' => $payment->fresh()->currency,
-                'gateway' => $payment->fresh()->gateway,
+                'reference' => $payment->reference,
+                'status' => $payment->status,
+                'amount' => (float) $payment->amount,
+                'currency' => $payment->currency,
+                'gateway' => $payment->gateway,
             ]);
 
         } catch (Throwable $e) {
@@ -184,6 +305,7 @@ class PaymentController extends Controller
                 'Paystack transaction verification failed.',
                 [
                     'user_id' => $user->id,
+                    'payment_id' => $payment->id,
                     'reference' => $reference,
                     'error' => $e->getMessage(),
                 ]
@@ -216,7 +338,8 @@ class PaymentController extends Controller
         }
 
         /*
-         * Paystack signs the raw request body using HMAC SHA-512.
+         * Paystack signs the exact raw request body
+         * using HMAC SHA-512.
          */
         $signature = $request->header(
             'x-paystack-signature'
@@ -232,11 +355,6 @@ class PaymentController extends Controller
             ], 401);
         }
 
-        /*
-         * Use the exact raw request body.
-         * Do not decode and re-encode the JSON before
-         * calculating the signature.
-         */
         $payload = $request->getContent();
 
         $expectedSignature = hash_hmac(
@@ -245,10 +363,6 @@ class PaymentController extends Controller
             $secretKey
         );
 
-        /*
-         * Compare the supplied Paystack signature against
-         * our calculated HMAC signature.
-         */
         if (! hash_equals(
             $expectedSignature,
             trim($signature)
@@ -263,8 +377,7 @@ class PaymentController extends Controller
         }
 
         /*
-         * Decode the verified webhook payload only after
-         * the signature has been successfully validated.
+         * Decode only after the signature has been verified.
          */
         $event = $request->json()->all();
 
@@ -282,8 +395,7 @@ class PaymentController extends Controller
         }
 
         /*
-         * We currently process successful and failed
-         * charge events.
+         * Process only the payment events we support.
          */
         if (! in_array(
             $eventName,
@@ -293,10 +405,6 @@ class PaymentController extends Controller
             ],
             true
         )) {
-            /*
-             * Paystack may send other legitimate events.
-             * Acknowledge them without modifying payments.
-             */
             return response()->json([
                 'message' => 'Webhook received.',
             ]);
@@ -323,8 +431,8 @@ class PaymentController extends Controller
         )->first();
 
         /*
-         * A valid Paystack event for an unknown transaction
-         * should not create a payment automatically.
+         * Never create a local payment from an unknown
+         * Paystack transaction.
          */
         if (! $payment) {
             Log::warning(
@@ -341,13 +449,36 @@ class PaymentController extends Controller
         }
 
         /*
-         * Do not allow a previously successful payment to
-         * be downgraded by a later failed event.
+         * A paid payment is final.
+         * Do not downgrade it because of a later event.
          */
         if ($payment->status === 'paid') {
             return response()->json([
                 'message' => 'Payment already completed.',
             ]);
+        }
+
+        /*
+         * Verify amount/currency on successful charge events.
+         */
+        if (
+            $eventName === 'charge.success'
+            && ! $this->paystackTransactionMatchesPayment(
+                $data,
+                $payment
+            )
+        ) {
+            Log::warning(
+                'Paystack webhook amount or currency mismatch.',
+                [
+                    'payment_id' => $payment->id,
+                    'reference' => $reference,
+                ]
+            );
+
+            return response()->json([
+                'error' => 'Payment data mismatch.',
+            ], 422);
         }
 
         $status = match ($eventName) {
@@ -377,5 +508,40 @@ class PaymentController extends Controller
         return response()->json([
             'message' => 'Webhook processed successfully.',
         ]);
+    }
+
+    /**
+     * Verify that Paystack's transaction amount and currency
+     * match the local payment record.
+     *
+     * The application stores the original payment amount in USD,
+     * while Paystack receives NGN converted to Kobo.
+     *
+     * The expected Kobo amount comes from the immutable payment
+     * snapshot captured during initialization.
+     */
+    protected function paystackTransactionMatchesPayment(
+        array $transaction,
+        Payment $payment
+    ): bool {
+        $transactionCurrency = strtoupper(
+            (string) ($transaction['currency'] ?? '')
+        );
+
+        if ($transactionCurrency !== 'NGN') {
+            return false;
+        }
+
+        $expectedKobo = (int) $payment->amount_kobo;
+
+        if ($expectedKobo <= 0) {
+            return false;
+        }
+
+        $actualKobo = (int) (
+            $transaction['amount'] ?? 0
+        );
+
+        return $actualKobo === $expectedKobo;
     }
 }

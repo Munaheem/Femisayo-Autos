@@ -11,6 +11,9 @@ class Payment extends Model
         'reference',
         'customer_id',
         'amount',
+        'amount_usd',
+        'amount_kobo',
+        'ngn_per_usd',
         'currency',
         'email',
         'title',
@@ -25,13 +28,16 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'amount_usd' => 'decimal:2',
+            'amount_kobo' => 'integer',
+            'ngn_per_usd' => 'decimal:2',
         ];
     }
 
     public function customer(): BelongsTo
     {
         return $this->belongsTo(
-            Customer::class,
+            'App\\Models\\Customer',
             'customer_id'
         );
     }

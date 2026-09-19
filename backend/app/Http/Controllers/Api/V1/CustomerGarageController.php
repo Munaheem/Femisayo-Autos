@@ -8,30 +8,18 @@ use App\Http\Resources\OrderResource;
 use App\Models\Customer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CustomerGarageController extends Controller
 {
     /**
      * Get a customer's garage, appointments, and orders.
      */
-    public function index(
+        public function index(
         Request $request,
         Customer $customer
-    ): JsonResponse {
-        $user = $request->user();
-
-        /*
-         * Customers may only access their own garage.
-         * Staff can access any customer garage.
-         */
-        if (
-            $user->role === 'customer'
-            && $customer->user_id !== $user->id
-        ) {
-            return response()->json([
-                'error' => 'You are not authorized to access this garage.',
-            ], 403);
-        }
+        ): JsonResponse {
+        $this->authorizeGarageAccess($request, $customer);
 
         $customer->load('vehicles');
 
@@ -50,9 +38,34 @@ class CustomerGarageController extends Controller
             ->latest()
             ->get();
 
+        /*
+         * Do not return the complete Customer model here.
+         *
+         * The garage frontend does not need encrypted_vault,
+         * encrypted_vault_key, or other internal customer fields.
+         *
+         * Keep the garage response limited to the customer data
+         * required by the dashboard.
+         */
+        $customerData = [
+            'id' => $customer->id,
+            'userId' => $customer->user_id,
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'phone' => $customer->phone,
+            'address' => $customer->address,
+            'vehicleInfo' => $customer->vehicle_info,
+            'totalSpent' => $customer->total_spent,
+            'loyaltyPoints' => $customer->loyalty_points,
+            'tier' => $customer->tier,
+            'vehicles' => $customer->vehicles,
+            'createdAt' => $customer->created_at,
+            'updatedAt' => $customer->updated_at,
+        ];
+
         return response()->json([
             'data' => [
-                'customer' => $customer,
+                'customer' => $customerData,
                 'appointments' => AppointmentResource::collection(
                     $appointments
                 )->resolve(),
@@ -70,20 +83,7 @@ class CustomerGarageController extends Controller
         Request $request,
         Customer $customer
     ): JsonResponse {
-        $user = $request->user();
-
-        /*
-         * Customers may only modify their own garage.
-         * Staff can manage any customer garage.
-         */
-        if (
-            $user->role === 'customer'
-            && $customer->user_id !== $user->id
-        ) {
-            return response()->json([
-                'error' => 'You are not authorized to access this garage.',
-            ], 403);
-        }
+        $this->authorizeGarageAccess($request, $customer);
 
         $validated = $request->validate([
             'year' => [
@@ -127,20 +127,25 @@ class CustomerGarageController extends Controller
             ],
         ]);
 
-        /*
-         * Only one vehicle can be primary.
-         */
-        if ($validated['is_primary'] ?? false) {
-            $customer->vehicles()->update([
-                'is_primary' => false,
-            ]);
-        }
+        $vehicle = DB::transaction(function () use (
+            $customer,
+            $validated
+        ) {
+            /*
+             * Only one vehicle can be primary.
+             */
+            if ($validated['is_primary'] ?? false) {
+                $customer->vehicles()->update([
+                    'is_primary' => false,
+                ]);
+            }
 
-        $vehicle = $customer->vehicles()->create($validated);
+            return $customer->vehicles()->create($validated);
+        });
 
         return response()->json([
             'message' => 'Vehicle added to garage.',
-            'data' => $vehicle,
+            'data' => $vehicle->fresh(),
         ], 201);
     }
 
@@ -152,23 +157,11 @@ class CustomerGarageController extends Controller
         Customer $customer,
         int $vehicle
     ): JsonResponse {
-        $user = $request->user();
-
-        /*
-         * Customers may only modify their own garage.
-         * Staff can manage any customer garage.
-         */
-        if (
-            $user->role === 'customer'
-            && $customer->user_id !== $user->id
-        ) {
-            return response()->json([
-                'error' => 'You are not authorized to access this garage.',
-            ], 403);
-        }
+        $this->authorizeGarageAccess($request, $customer);
 
         /*
          * Scope the vehicle lookup to this customer.
+         *
          * This prevents one customer from modifying another
          * customer's vehicle by changing the vehicle ID.
          */
@@ -217,16 +210,24 @@ class CustomerGarageController extends Controller
             ],
         ]);
 
-        /*
-         * Only one vehicle can be primary.
-         */
-        if ($validated['is_primary'] ?? false) {
-            $customer->vehicles()->update([
-                'is_primary' => false,
-            ]);
-        }
+        DB::transaction(function () use (
+            $customer,
+            $vehicleModel,
+            $validated
+        ) {
+            /*
+             * Only one vehicle can be primary.
+             */
+            if ($validated['is_primary'] ?? false) {
+                $customer->vehicles()
+                    ->whereKey('!=', $vehicleModel->id)
+                    ->update([
+                        'is_primary' => false,
+                    ]);
+            }
 
-        $vehicleModel->update($validated);
+            $vehicleModel->update($validated);
+        });
 
         return response()->json([
             'message' => 'Garage vehicle updated.',
@@ -242,20 +243,7 @@ class CustomerGarageController extends Controller
         Customer $customer,
         int $vehicle
     ): JsonResponse {
-        $user = $request->user();
-
-        /*
-         * Customers may only modify their own garage.
-         * Staff can manage any customer garage.
-         */
-        if (
-            $user->role === 'customer'
-            && $customer->user_id !== $user->id
-        ) {
-            return response()->json([
-                'error' => 'You are not authorized to access this garage.',
-            ], 403);
-        }
+        $this->authorizeGarageAccess($request, $customer);
 
         /*
          * Scope the vehicle lookup to this customer.
@@ -263,8 +251,33 @@ class CustomerGarageController extends Controller
         $vehicleModel = $customer->vehicles()
             ->findOrFail($vehicle);
 
-        $vehicleModel->delete();
+        DB::transaction(function () use ($vehicleModel) {
+            $vehicleModel->delete();
+        });
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Authorize access to a customer's garage.
+     *
+     * Customers can only access their own garage.
+     * Staff roles can access customer garages.
+     */
+    protected function authorizeGarageAccess(
+        Request $request,
+        Customer $customer
+    ): void {
+        $user = $request->user();
+
+        if (
+            $user->role === 'customer'
+            && (int) $customer->user_id !== (int) $user->id
+        ) {
+            abort(
+                403,
+                'You are not authorized to access this garage.'
+            );
+        }
     }
 }

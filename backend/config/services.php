@@ -24,7 +24,7 @@ return [
     ],
    'paystack' => [
     'secret_key' => env('PAYSTACK_SECRET_KEY'),
-    'ngn_per_usd' => env('NGN_PER_USD', 1500),
+    'ngn_per_usd' => env('PAYSTACK_NGN_PER_USD', 1500),
 ],
 
 ];

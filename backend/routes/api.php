@@ -43,7 +43,16 @@ Route::prefix('v1')->group(function () {
             ]);
         });
 
-        Route::middleware('auth:sanctum')->group(function () {
+        /*
+        |--------------------------------------------------------------------------
+        | Authenticated Account Actions
+        |--------------------------------------------------------------------------
+        */
+
+        Route::middleware([
+            'auth:sanctum',
+            'throttle:api',
+        ])->group(function () {
 
             Route::get('/me', [
                 AuthController::class,
@@ -66,20 +75,23 @@ Route::prefix('v1')->group(function () {
     |
     */
 
-    Route::get('/services', [
-        ServiceController::class,
-        'index',
-    ]);
+    Route::middleware('throttle:api')->group(function () {
 
-    Route::get('/services/{service}', [
-        ServiceController::class,
-        'show',
-    ]);
+        Route::get('/services', [
+            ServiceController::class,
+            'index',
+        ]);
 
-    Route::get('/technicians', [
-        TechnicianController::class,
-        'index',
-    ]);
+        Route::get('/services/{service}', [
+            ServiceController::class,
+            'show',
+        ]);
+
+        Route::get('/technicians', [
+            TechnicianController::class,
+            'index',
+        ]);
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -87,7 +99,10 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware([
+        'auth:sanctum',
+        'throttle:api',
+    ])->group(function () {
 
         /*
         |--------------------------------------------------------------------------
@@ -109,8 +124,10 @@ Route::prefix('v1')->group(function () {
             );
         });
 
-        // Customers can view and update their own profile.
-        // Controller enforces ownership.
+        /*
+        | Customers can view and update their own profile.
+        | Controller enforces ownership.
+        */
         Route::get(
             'customers/{customer}',
             [CustomerController::class, 'show']
@@ -126,7 +143,9 @@ Route::prefix('v1')->group(function () {
             [CustomerController::class, 'update']
         );
 
-        // Only administrators can delete customer accounts.
+        /*
+        | Only administrators can delete customer accounts.
+        */
         Route::middleware('role:admin')->group(function () {
 
             Route::delete(
@@ -141,8 +160,6 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        // Customers can access their own garage.
-        // Staff can access customer garages for management.
         Route::get(
             'customers/{customer}/garage',
             [CustomerGarageController::class, 'index']
@@ -163,8 +180,12 @@ Route::prefix('v1')->group(function () {
             [CustomerGarageController::class, 'update']
         );
 
-        // Only staff can delete garage vehicles.
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        /*
+        | Only staff can delete garage vehicles.
+        */
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::delete(
                 'customers/{customer}/garage/{vehicle}',
@@ -188,7 +209,9 @@ Route::prefix('v1')->group(function () {
             [VehicleController::class, 'show']
         );
 
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::post(
                 'vehicles',
@@ -217,25 +240,27 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::post(
-                '/services',
+                'services',
                 [ServiceController::class, 'store']
             );
 
             Route::put(
-                '/services/{service}',
+                'services/{service}',
                 [ServiceController::class, 'update']
             );
 
             Route::patch(
-                '/services/{service}',
+                'services/{service}',
                 [ServiceController::class, 'update']
             );
 
             Route::delete(
-                '/services/{service}',
+                'services/{service}',
                 [ServiceController::class, 'destroy']
             );
         });
@@ -246,10 +271,12 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::patch(
-                '/technicians/{technician}',
+                'technicians/{technician}',
                 [TechnicianController::class, 'update']
             );
         });
@@ -260,8 +287,6 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        // Customers and staff can view/create appointments.
-        // The controller handles ownership and customer/staff-specific behavior.
         Route::apiResource(
             'appointments',
             AppointmentController::class
@@ -271,8 +296,6 @@ Route::prefix('v1')->group(function () {
             'show',
         ]);
 
-        // Customers can update/cancel their own appointments.
-        // Staff can update/cancel appointments through controller authorization.
         Route::put(
             'appointments/{appointment}',
             [AppointmentController::class, 'update']
@@ -288,8 +311,12 @@ Route::prefix('v1')->group(function () {
             [AppointmentController::class, 'destroy']
         );
 
-        // Only staff roles can change appointment workflow status.
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        /*
+        | Only staff roles can change appointment workflow status.
+        */
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::patch(
                 'appointments/{appointment}/status',
@@ -308,7 +335,9 @@ Route::prefix('v1')->group(function () {
             [PartController::class, 'index']
         );
 
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::post(
                 'parts',
@@ -337,8 +366,6 @@ Route::prefix('v1')->group(function () {
         |--------------------------------------------------------------------------
         */
 
-        // Customers and staff can view orders.
-        // Controller scopes customers to their own orders.
         Route::get(
             'orders',
             [OrderController::class, 'index']
@@ -349,15 +376,14 @@ Route::prefix('v1')->group(function () {
             [OrderController::class, 'show']
         );
 
-        // Customers, admin, sales and technicians can create orders.
-        // Controller ensures customers can only create for themselves.
         Route::post(
             'orders',
             [OrderController::class, 'store']
         );
 
-        // Only staff roles can update orders.
-        Route::middleware('role:admin,sales,technician')->group(function () {
+        Route::middleware(
+            'role:admin,sales,technician'
+        )->group(function () {
 
             Route::put(
                 'orders/{order}',
@@ -370,7 +396,9 @@ Route::prefix('v1')->group(function () {
             );
         });
 
-        // Only admin and sales can cancel orders.
+        /*
+        | Only admin and sales can cancel orders.
+        */
         Route::middleware('role:admin,sales')->group(function () {
 
             Route::delete(
@@ -386,22 +414,22 @@ Route::prefix('v1')->group(function () {
         */
 
         Route::get(
-            '/notifications',
+            'notifications',
             [NotificationController::class, 'index']
         );
 
         Route::post(
-            '/notifications',
+            'notifications',
             [NotificationController::class, 'store']
         );
 
         Route::patch(
-            '/notifications/read-all',
+            'notifications/read-all',
             [NotificationController::class, 'readAll']
         );
 
         Route::patch(
-            '/notifications/{id}/read',
+            'notifications/{id}/read',
             [NotificationController::class, 'read']
         );
 

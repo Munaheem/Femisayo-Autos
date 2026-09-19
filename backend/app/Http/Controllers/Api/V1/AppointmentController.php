@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
-use App\Models\Customer;
 use App\Models\CustomerVehicle;
 use App\Models\Service;
 use App\Models\Technician;
@@ -34,7 +33,9 @@ class AppointmentController extends Controller
         $user = $request->user();
 
         if ($user->role === 'customer') {
-            $customer = Customer::where('user_id', $user->id)->first();
+            $customer = DB::table('customers')
+                ->where('user_id', $user->id)
+                ->first();
 
             if (! $customer) {
                 return response()->json([
@@ -145,7 +146,9 @@ class AppointmentController extends Controller
          * Determine the customer.
          */
         if ($user->role === 'customer') {
-            $customer = Customer::where('user_id', $user->id)->first();
+            $customer = DB::table('customers')
+                ->where('user_id', $user->id)
+                ->first();
 
             if (! $customer) {
                 return response()->json([
@@ -159,7 +162,9 @@ class AppointmentController extends Controller
                 ], 422);
             }
 
-            $customer = Customer::find($validated['customerId']);
+            $customer = DB::table('customers')
+                ->where('id', $validated['customerId'])
+                ->first();
 
             if (! $customer) {
                 return response()->json([
@@ -465,10 +470,9 @@ class AppointmentController extends Controller
         if ($existingAppointment) {
             $customer = $existingAppointment->customer;
         } elseif ($user->role === 'customer') {
-            $customer = Customer::where(
-                'user_id',
-                $user->id
-            )->first();
+            $customer = DB::table('customers')
+                ->where('user_id', $user->id)
+                ->first();
 
             if (! $customer) {
                 return response()->json([
@@ -491,9 +495,9 @@ class AppointmentController extends Controller
                 ], 422);
             }
 
-            $customer = Customer::find(
-                $validated['customerId']
-            );
+            $customer = DB::table('customers')
+                ->where('id', $validated['customerId'])
+                ->first();
 
             if (! $customer) {
                 return response()->json([
@@ -1045,10 +1049,9 @@ class AppointmentController extends Controller
          * Customers can only access their own appointments.
          */
         if ($user->role === 'customer') {
-            $customer = Customer::where(
-                'user_id',
-                $user->id
-            )->first();
+            $customer = DB::table('customers')
+                ->where('user_id', $user->id)
+                ->first();
 
             if (
                 ! $customer ||

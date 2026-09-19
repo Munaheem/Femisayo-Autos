@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Customer as CustomerModel;
 use App\Models\User;
 use App\Services\CustomerVaultService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -29,12 +29,12 @@ class CustomerController extends Controller
     {
         $this->authorizeStaff($request);
 
-        $customers = CustomerModel::with('vehicles')
+        $customers = $this->customerClass()::with('vehicles')
             ->latest()
             ->get();
 
         $customers->each(
-            fn (CustomerModel $customer) =>
+            fn (Model $customer) =>
                 $this->prepareVaultForResponse($customer)
         );
 
@@ -61,7 +61,7 @@ class CustomerController extends Controller
 
             $vaultKey = $this->vaultService->generateKey();
 
-            $customer = Customer::create([
+            $customer = $this->customerClass()::create([
                 'user_id' => $user->id,
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -97,7 +97,7 @@ class CustomerController extends Controller
      */
     public function show(
         Request $request,
-        Customer $customer
+        Model $customer
     ): JsonResponse {
         $this->authorizeCustomerAccess($request, $customer);
 
@@ -122,7 +122,7 @@ class CustomerController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        $customerModel = Customer::find($customer);
+        $customerModel = $this->customerClass()::find($customer);
 
         /*
          * PATCH must remain update-only.
@@ -154,7 +154,7 @@ class CustomerController extends Controller
 
                     $vaultKey = $this->vaultService->generateKey();
 
-                    return Customer::create([
+                    return $this->customerClass()::create([
                         'id' => $customer,
                         'user_id' => $user->id,
                         'name' => $validated['name'],
@@ -299,7 +299,7 @@ class CustomerController extends Controller
      */
     public function destroy(
         Request $request,
-        Customer $customer
+        Model $customer
     ): JsonResponse {
         abort_unless(
             $request->user()->role === 'admin',
@@ -435,7 +435,7 @@ class CustomerController extends Controller
     protected function ensureUserDoesNotAlreadyHaveCustomer(
         User $user
     ): void {
-        $existingCustomer = Customer::where(
+        $existingCustomer = $this->customerClass()::where(
             'user_id',
             $user->id
         )->first();
@@ -470,7 +470,7 @@ class CustomerController extends Controller
      * Get the existing vault key or create one for a legacy customer.
      */
     protected function getOrCreateVaultKey(
-        Customer $customer,
+        Model $customer,
         array &$mapped
     ): string {
         if ($customer->encrypted_vault_key) {
@@ -514,7 +514,7 @@ class CustomerController extends Controller
      */
     protected function authorizeCustomerAccess(
         Request $request,
-        Customer $customer
+        Model $customer
     ): void {
         $user = $request->user();
 
@@ -533,8 +533,8 @@ class CustomerController extends Controller
      * The server encryption key is NEVER included.
      */
     protected function prepareVaultForResponse(
-        Customer $customer
-    ): Customer {
+        Model $customer
+    ): Model {
         if (
             ! $customer->encrypted_vault
             || ! $customer->encrypted_vault_key
@@ -575,5 +575,14 @@ class CustomerController extends Controller
         ]);
 
         return $customer;
+    }
+
+    /**
+     * Resolve the customer model without requiring the IDE to index the
+     * application's model class in this controller.
+     */
+    protected function customerClass(): string
+    {
+        return 'App\\Models\\Customer';
     }
 }

@@ -29,6 +29,18 @@ class PaystackService
             );
         }
 
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException(
+                'A valid customer email is required.'
+            );
+        }
+
+        if ($amountUsd <= 0) {
+            throw new RuntimeException(
+                'Payment amount must be greater than zero.'
+            );
+        }
+
         $ngnPerUsd = (float) config(
             'services.paystack.ngn_per_usd',
             1500
@@ -41,12 +53,18 @@ class PaystackService
         }
 
         /*
-         * Convert the application amount from USD to NGN.
+         * Convert USD to NGN.
          */
-        $amountInNaira = $amountUsd * $ngnPerUsd;
+        $amountInNaira = round(
+            $amountUsd * $ngnPerUsd,
+            2
+        );
 
         /*
          * Paystack expects NGN amounts in kobo.
+         *
+         * Using the rounded NGN amount before converting to kobo
+         * keeps the value deterministic.
          */
         $amountInKobo = (int) round(
             $amountInNaira * 100
@@ -58,11 +76,18 @@ class PaystackService
             );
         }
 
+        /*
+         * IMPORTANT:
+         *
+         * Do not automatically retry transaction initialization.
+         * If Paystack accepts the transaction but the response is
+         * lost, retrying can potentially create a second transaction.
+         */
         $response = Http::withToken($secretKey)
             ->acceptJson()
             ->asJson()
+            ->connectTimeout(10)
             ->timeout(30)
-            ->retry(2, 1000)
             ->post(
                 $this->baseUrl . '/transaction/initialize',
                 [
@@ -90,7 +115,7 @@ class PaystackService
         $data = $response->json('data');
 
         if (
-            ! $response->json('status')
+            $response->json('status') !== true
             || ! is_array($data)
         ) {
             throw new RuntimeException(
@@ -117,6 +142,8 @@ class PaystackService
 
     /**
      * Verify a Paystack transaction.
+     *
+     * Verification is safe to retry because it is a read operation.
      */
     public function verifyTransaction(
         string $reference
@@ -129,8 +156,17 @@ class PaystackService
             );
         }
 
+        $reference = trim($reference);
+
+        if ($reference === '') {
+            throw new RuntimeException(
+                'Paystack transaction reference is required.'
+            );
+        }
+
         $response = Http::withToken($secretKey)
             ->acceptJson()
+            ->connectTimeout(10)
             ->timeout(30)
             ->retry(2, 1000)
             ->get(
@@ -149,7 +185,7 @@ class PaystackService
         $data = $response->json('data');
 
         if (
-            ! $response->json('status')
+            $response->json('status') !== true
             || ! is_array($data)
         ) {
             throw new RuntimeException(
