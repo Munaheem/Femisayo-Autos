@@ -90,11 +90,7 @@ class CustomerController extends Controller
         ], 201);
     }
 
-    /**
-     * Get a single customer.
-     *
-     * Customers can only access their own record.
-     */
+   
     public function show(
         Request $request,
         Customer $customer
@@ -110,12 +106,7 @@ class CustomerController extends Controller
         ]);
     }
 
-    /**
-     * Update or upsert a customer record.
-     *
-     * PUT supports update-or-create.
-     * PATCH remains update-only.
-     */
+    
     public function update(
         Request $request,
         string $customer
