@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Services\CustomerVaultService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Customer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -34,7 +34,7 @@ class CustomerController extends Controller
             ->get();
 
         $customers->each(
-            fn (Model $customer) =>
+            fn (Customer $customer) =>
                 $this->prepareVaultForResponse($customer)
         );
 
@@ -97,7 +97,7 @@ class CustomerController extends Controller
      */
     public function show(
         Request $request,
-        Model $customer
+        Customer $customer
     ): JsonResponse {
         $this->authorizeCustomerAccess($request, $customer);
 
@@ -299,7 +299,7 @@ class CustomerController extends Controller
      */
     public function destroy(
         Request $request,
-        Model $customer
+        Customer $customer
     ): JsonResponse {
         abort_unless(
             $request->user()->role === 'admin',
@@ -470,7 +470,7 @@ class CustomerController extends Controller
      * Get the existing vault key or create one for a legacy customer.
      */
     protected function getOrCreateVaultKey(
-        Model $customer,
+        Customer $customer,
         array &$mapped
     ): string {
         if ($customer->encrypted_vault_key) {
@@ -514,7 +514,7 @@ class CustomerController extends Controller
      */
     protected function authorizeCustomerAccess(
         Request $request,
-        Model $customer
+        Customer $customer
     ): void {
         $user = $request->user();
 
@@ -533,8 +533,8 @@ class CustomerController extends Controller
      * The server encryption key is NEVER included.
      */
     protected function prepareVaultForResponse(
-        Model $customer
-    ): Model {
+        Customer $customer
+    ): Customer {
         if (
             ! $customer->encrypted_vault
             || ! $customer->encrypted_vault_key
