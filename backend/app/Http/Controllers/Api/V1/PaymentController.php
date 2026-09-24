@@ -27,6 +27,9 @@ class PaymentController extends Controller
      *
      * The application accepts the amount in USD.
      * Paystack receives the converted NGN amount in kobo.
+     *
+     * The USD -> NGN rate is obtained from Monierate's
+     * Nigerian parallel-market rate at initialization time.
      */
     public function initialize(Request $request): JsonResponse
     {
@@ -36,16 +39,19 @@ class PaymentController extends Controller
                 'numeric',
                 'min:0.01',
             ],
+
             'email' => [
                 'required',
                 'email',
                 'max:255',
             ],
+
             'title' => [
                 'required',
                 'string',
                 'max:255',
             ],
+
             'description' => [
                 'nullable',
                 'string',
@@ -61,24 +67,6 @@ class PaymentController extends Controller
 
         try {
             /*
-             * Capture the exchange rate at payment creation time.
-             *
-             * This rate becomes part of the payment snapshot and will
-             * be used later for verification instead of the current
-             * application-wide rate.
-             */
-            $ngnPerUsd = (float) config(
-                'services.paystack.ngn_per_usd',
-                1500
-            );
-
-            if ($ngnPerUsd <= 0) {
-                throw new RuntimeException(
-                    'Invalid USD to NGN exchange rate.'
-                );
-            }
-
-            /*
              * The application amount is in USD.
              */
             $amountUsd = (float) $validated['amount'];
@@ -90,63 +78,9 @@ class PaymentController extends Controller
             }
 
             /*
-             * Convert USD to NGN using the rate captured above.
-             */
-            $amountInNaira = round(
-                $amountUsd * $ngnPerUsd,
-                2
-            );
-
-            /*
-             * Paystack expects NGN amounts in kobo.
-             */
-            $amountInKobo = (int) round(
-                $amountInNaira * 100
-            );
-
-            if ($amountInKobo <= 0) {
-                throw new RuntimeException(
-                    'Payment amount must be greater than zero.'
-                );
-            }
-
-            /*
-             * Create our local payment record first.
+             * Get the LIVE Nigerian parallel-market USD/NGN rate.
              *
-             * The USD amount, NGN/kobo amount, and exchange rate are
-             * permanently captured so future exchange-rate changes
-             * cannot affect this payment.
-             */
-            $payment = Payment::create([
-                'reference' => 'PAY-' . strtoupper(
-                    Str::random(16)
-                ),
-
-                'customer_id' => $customer?->id,
-
-                // Original application amount.
-                'amount' => $amountUsd,
-
-                // Immutable payment snapshot.
-                'amount_usd' => $amountUsd,
-                'amount_kobo' => $amountInKobo,
-                'ngn_per_usd' => $ngnPerUsd,
-
-                /*
-                 * The gateway transaction is denominated in NGN.
-                 */
-                'currency' => 'NGN',
-
-                'email' => $validated['email'],
-                'title' => $validated['title'],
-                'description' =>
-                    $validated['description'] ?? null,
-                'status' => 'pending',
-                'gateway' => 'paystack',
-            ]);
-
-            /*
-             * Initialize the Paystack transaction.
+             * PaystackService obtains this from Monierate.
              */
             $paystack = $this->paystack->initializeTransaction(
                 $validated['email'],
@@ -156,13 +90,77 @@ class PaymentController extends Controller
             );
 
             /*
-             * Store the actual Paystack reference and checkout data.
+             * PaystackService has already captured:
+             *
+             * - amountUsd
+             * - amountNgn
+             * - amountKobo
+             * - ngnPerUsd
+             *
+             * These values represent the exact exchange-rate snapshot
+             * used for this transaction.
              */
-            $payment->update([
+            $ngnPerUsd = (float) ($paystack['ngnPerUsd'] ?? 0);
+            $amountInNaira = (float) ($paystack['amountNgn'] ?? 0);
+            $amountInKobo = (int) ($paystack['amountKobo'] ?? 0);
+
+            if ($ngnPerUsd <= 0) {
+                throw new RuntimeException(
+                    'Invalid USD to NGN exchange rate.'
+                );
+            }
+
+            if ($amountInKobo <= 0) {
+                throw new RuntimeException(
+                    'Payment amount must be greater than zero.'
+                );
+            }
+
+            /*
+             * Create our local payment record.
+             *
+             * The USD amount, NGN amount, Kobo amount, and exchange rate
+             * are permanently captured so future exchange-rate changes
+             * cannot affect this payment.
+             */
+            $payment = Payment::create([
+                /*
+                 * We use Paystack's reference as the local reference.
+                 */
                 'reference' =>
                     $paystack['reference']
-                    ?? $payment->reference,
+                    ?? 'PAY-' . strtoupper(Str::random(16)),
 
+                'customer_id' => $customer?->id,
+
+                /*
+                 * Original application amount in USD.
+                 */
+                'amount' => $amountUsd,
+
+                /*
+                 * Immutable payment snapshot.
+                 */
+                'amount_usd' => $amountUsd,
+                'amount_kobo' => $amountInKobo,
+                'ngn_per_usd' => $ngnPerUsd,
+
+                /*
+                 * Gateway transaction is denominated in NGN.
+                 */
+                'currency' => 'NGN',
+
+                'email' => $validated['email'],
+                'title' => $validated['title'],
+                'description' =>
+                    $validated['description'] ?? null,
+
+                'status' => 'pending',
+                'gateway' => 'paystack',
+
+                /*
+                 * Store the Paystack checkout information immediately.
+                 */
                 'authorization_url' =>
                     $paystack['authorizationUrl'] ?? null,
 
@@ -170,12 +168,38 @@ class PaymentController extends Controller
                     $paystack['accessCode'] ?? null,
             ]);
 
+            /*
+             * Return the payment details to the frontend.
+             *
+             * Including the conversion information makes the amount
+             * transparent to the frontend/customer.
+             */
             return response()->json([
                 'reference' => $payment->reference,
+
                 'authorizationUrl' =>
                     $payment->authorization_url,
+
                 'accessCode' =>
                     $payment->access_code,
+
+                'amountUsd' =>
+                    (float) $payment->amount_usd,
+
+                'amountNgn' =>
+                    $amountInNaira,
+
+                'amountKobo' =>
+                    $amountInKobo,
+
+                'ngnPerUsd' =>
+                    $ngnPerUsd,
+
+                'currency' =>
+                    $payment->currency,
+
+                'status' =>
+                    $payment->status,
             ], 201);
 
         } catch (Throwable $e) {

@@ -9,6 +9,11 @@ class PaystackService
 {
     protected string $baseUrl = 'https://api.paystack.co';
 
+    public function __construct(
+        protected MonierateService $monierate
+    ) {
+    }
+
     /**
      * Initialize a Paystack transaction.
      *
@@ -41,10 +46,11 @@ class PaystackService
             );
         }
 
-        $ngnPerUsd = (float) config(
-            'services.paystack.ngn_per_usd',
-            1500
-        );
+        /*
+         * Get the current Nigerian parallel-market
+         * USD → NGN exchange rate from Monierate.
+         */
+        $ngnPerUsd = $this->monierate->getUsdNgnParallelRate();
 
         if ($ngnPerUsd <= 0) {
             throw new RuntimeException(
@@ -137,14 +143,14 @@ class PaystackService
             'reference' => $data['reference'],
             'authorizationUrl' => $data['authorization_url'],
             'accessCode' => $data['access_code'] ?? null,
+            'amountUsd' => $amountUsd,
+            'amountNgn' => $amountInNaira,
+            'amountKobo' => $amountInKobo,
+            'ngnPerUsd' => $ngnPerUsd,
         ];
     }
 
-    /**
-     * Verify a Paystack transaction.
-     *
-     * Verification is safe to retry because it is a read operation.
-     */
+   
     public function verifyTransaction(
         string $reference
     ): array {
