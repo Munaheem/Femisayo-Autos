@@ -134,7 +134,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
           <div className="lg:col-span-5">
             <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-xl">
               <img
-                src="/images/air suspension.jpg"
+                src="/images/femisayo brand logo.jpg"
                 alt="Femisayo Autos at work"
                 className="w-full h-64 sm:h-80 object-cover"
               />
@@ -350,7 +350,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
               onClick={onBookService}
               className="group relative rounded-2xl overflow-hidden border border-zinc-800 text-left hover:border-red-500/50 transition-colors"
             >
-              <img src="/images/air sus 2.jpg" alt="Service bay" className="w-full h-56 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" />
+              <img src="/images/diagnostic.png" alt="Service bay" className="w-full h-56 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-red-400">01 · Service</span>
@@ -363,7 +363,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
               onClick={onExploreCars}
               className="group relative rounded-2xl overflow-hidden border border-zinc-800 text-left hover:border-red-500/50 transition-colors"
             >
-              <img src="/images/G63.jpg" alt="Car showroom" className="w-full h-56 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" />
+              <img src="/images/automotive solutions.png" alt="Car showroom" className="w-full h-56 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-red-400">02 · Showroom</span>
@@ -376,7 +376,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
               onClick={onExploreParts}
               className="group relative rounded-2xl overflow-hidden border border-zinc-800 text-left hover:border-red-500/50 transition-colors"
             >
-              <img src="/images/air sus 3.jpg" alt="Parts & accessories" className="w-full h-56 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" />
+              <img src="/images/parts and accessories.jpg" alt="Parts & accessories" className="w-full h-56 object-cover opacity-60 group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-5">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-red-400">03 · Parts</span>
