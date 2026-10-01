@@ -194,7 +194,7 @@ export const api = {
 
   services: {
     /** GET /api/v1/services */
-    list: (): Promise<ServiceItem[] | null> => get<ServiceItem[]>('/api/v1/services'),
+    list: (): Promise<ServiceItem[] | null> => getCollection<ServiceItem>('/api/v1/services'),
     /** POST /api/v1/services */
     create: (input: Omit<ServiceItem, 'id'>): Promise<ServiceItem | null> =>
       post<ServiceItem>('/api/v1/services', input),
@@ -207,7 +207,7 @@ export const api = {
 
   technicians: {
     /** GET /api/v1/technicians */
-    list: (): Promise<Technician[] | null> => get<Technician[]>('/api/v1/technicians'),
+    list: (): Promise<Technician[] | null> => getCollection<Technician>('/api/v1/technicians'),
     /** PATCH /api/v1/technicians/:id */
     update: (t: Technician): Promise<Technician | null> =>
       patch<Technician>(`/api/v1/technicians/${t.id}`, t)
@@ -215,7 +215,7 @@ export const api = {
 
   vehicles: {
     /** GET /api/v1/vehicles */
-    list: (): Promise<VehicleItem[] | null> => get<VehicleItem[]>('/api/v1/vehicles'),
+    list: (): Promise<VehicleItem[] | null> => getCollection<VehicleItem>('/api/v1/vehicles'),
     /** POST /api/v1/vehicles */
     create: (input: VehicleInput): Promise<VehicleItem | null> =>
       post<VehicleItem>('/api/v1/vehicles', input),
@@ -228,7 +228,7 @@ export const api = {
 
   parts: {
     /** GET /api/v1/parts */
-    list: (): Promise<PartItem[] | null> => get<PartItem[]>('/api/v1/parts'),
+    list: (): Promise<PartItem[] | null> => getCollection<PartItem>('/api/v1/parts'),
     /** POST /api/v1/parts */
     create: (input: PartInput): Promise<PartItem | null> =>
       post<PartItem>('/api/v1/parts', input),
@@ -241,7 +241,7 @@ export const api = {
 
   appointments: {
     /** GET /api/v1/appointments */
-    list: (): Promise<Appointment[] | null> => get<Appointment[]>('/api/v1/appointments'),
+    list: (): Promise<Appointment[] | null> => getCollection<Appointment>('/api/v1/appointments'),
     /** POST /api/v1/appointments */
     create: (input: AppointmentInput): Promise<Appointment | null> =>
       post<Appointment>('/api/v1/appointments', input),
@@ -260,7 +260,7 @@ export const api = {
 
   customers: {
     /** GET /api/v1/customers */
-    list: (): Promise<CustomerRecord[] | null> => get<CustomerRecord[]>('/api/v1/customers'),
+    list: (): Promise<CustomerRecord[] | null> => getCollection<CustomerRecord>('/api/v1/customers'),
     /** GET /api/v1/customers/:id/garage — customer, appointments + orders for one customer */
     garage: (id: string): Promise<{ customer: CustomerRecord | null; appointments?: Appointment[]; orders?: Order[] } | null> =>
       get<{ customer: CustomerRecord | null; appointments?: Appointment[]; orders?: Order[] }>(`/api/v1/customers/${id}/garage`),
@@ -279,7 +279,7 @@ export const api = {
 
   orders: {
     /** GET /api/v1/orders */
-    list: (): Promise<Order[] | null> => get<Order[]>('/api/v1/orders'),
+    list: (): Promise<Order[] | null> => getCollection<Order>('/api/v1/orders'),
     /** POST /api/v1/orders */
     create: (input: OrderInput): Promise<Order | null> =>
       post<Order>('/api/v1/orders', input),
@@ -291,13 +291,26 @@ export const api = {
   notifications: {
     /** GET /api/v1/notifications — scoped to the caller's role/recipient */
     list: (): Promise<PushNotification[] | null> =>
-      get<PushNotification[]>('/api/v1/notifications'),
+      getCollection<PushNotification>('/api/v1/notifications'),
     /** POST /api/v1/notifications — create + dispatch a push notification */
     send: (input: NotificationInput): Promise<PushNotification | null> =>
       post<PushNotification>('/api/v1/notifications', input),
     /** PATCH /api/v1/notifications/read-all */
     markAllRead: (): Promise<PushNotification[] | null> =>
-      patch<PushNotification[]>('/api/v1/notifications/read-all'),
+      patch<unknown>('/api/v1/notifications/read-all').then(response => {
+        if (Array.isArray(response)) return response as PushNotification[];
+
+        if (
+          response !== null &&
+          typeof response === 'object' &&
+          'data' in response &&
+          Array.isArray((response as { data: unknown }).data)
+        ) {
+          return (response as { data: PushNotification[] }).data;
+        }
+
+        return null;
+      }),
     /** PATCH /api/v1/notifications/:id/read */
     markRead: (id: string): Promise<PushNotification | null> =>
       patch<PushNotification>(`/api/v1/notifications/${id}/read`)
