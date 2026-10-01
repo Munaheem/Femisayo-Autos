@@ -83,6 +83,25 @@ const put = <T>(p: string, b?: unknown) => request<T>('PUT', p, b);
 const patch = <T>(p: string, b?: unknown) => request<T>('PATCH', p, b);
 const del = <T>(p: string) => request<T>('DELETE', p);
 
+const getCollection = async <T>(path: string): Promise<T[] | null> => {
+  const response = await get<unknown>(path);
+
+  if (Array.isArray(response)) {
+    return response as T[];
+  }
+
+  if (
+    response !== null &&
+    typeof response === 'object' &&
+    'data' in response &&
+    Array.isArray((response as { data: unknown }).data)
+  ) {
+    return (response as { data: T[] }).data;
+  }
+
+  return null;
+};
+
 // ---------------------------------------------------------------------------
 // Request payload types. All camelCase — the backend engineer should keep this
 // casing so the DTOs map 1:1 onto the TS interfaces in src/types.ts.
