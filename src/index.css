@@ -3,6 +3,100 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Barlow Condensed", ui-monospace, sans-serif;
+
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
+
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #cbd5e1;
+  --color-neutral-800: #e2e8f0;
+  --color-neutral-900: #ffffff;
+  --color-neutral-950: #f8fafc;
+
+  --color-ink: #172b41;
+
+  --color-red-50: var(--color-brand-50);
+  --color-red-100: var(--color-brand-100);
+  --color-red-200: var(--color-brand-200);
+  --color-red-300: var(--color-brand-300);
+  --color-red-400: var(--color-brand-400);
+  --color-red-500: var(--color-brand-500);
+  --color-red-600: var(--color-brand-600);
+  --color-red-700: var(--color-brand-700);
+  --color-red-800: var(--color-brand-800);
+  --color-red-900: var(--color-brand-900);
+  --color-red-950: var(--color-brand-950);
+
+  --color-zinc-50: var(--color-neutral-50);
+  --color-zinc-100: var(--color-neutral-100);
+  --color-zinc-200: var(--color-neutral-200);
+  --color-zinc-300: var(--color-neutral-300);
+  --color-zinc-400: var(--color-neutral-400);
+  --color-zinc-500: var(--color-neutral-500);
+  --color-zinc-600: var(--color-neutral-600);
+  --color-zinc-700: var(--color-neutral-700);
+  --color-zinc-800: var(--color-neutral-800);
+  --color-zinc-900: var(--color-neutral-900);
+  --color-zinc-950: var(--color-neutral-950);
+}
+
+@layer utilities {
+  .bg-red-500,
+  .bg-red-600,
+  .bg-blue-500,
+  .bg-blue-600,
+  .bg-blue-700,
+  .bg-emerald-500,
+  .bg-emerald-600,
+  .bg-amber-600,
+  .bg-black\/80 {
+    --theme-foreground: #fff;
+  }
+
+  .text-white,
+  .hover\:text-white:hover {
+    color: var(--theme-foreground, var(--color-ink));
+  }
+
+  .text-zinc-100,
+  .text-zinc-200,
+  .text-zinc-300,
+  .text-zinc-700,
+  .text-zinc-800,
+  .text-zinc-900 {
+    color: var(--color-ink);
+  }
+
+  .text-zinc-400,
+  .text-zinc-500,
+  .text-zinc-600 {
+    color: var(--color-neutral-600);
+  }
+
+  .hover\:text-zinc-200:hover,
+  .hover\:text-zinc-300:hover,
+  .hover\:text-zinc-400:hover {
+    color: var(--color-ink);
+  }
+
+  .hero-banner .text-white {
+    color: #fff;
+  }
 }
 
 @media (max-width: 767px) {
@@ -13,5 +107,97 @@
     padding-right: 1.25rem;
     padding-top: 1rem;
     padding-bottom: 1rem;
+  }
+}
+
+@media (max-width: 1199px) {
+  .technician-jobs-table-wrapper,
+  .sales-appointments-table-wrapper,
+  .admin-appointments-table-wrapper {
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .technician-jobs-table,
+  .sales-appointments-table,
+  .admin-appointments-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .technician-jobs-table thead,
+  .sales-appointments-table thead,
+  .admin-appointments-table thead {
+    display: none;
+  }
+
+  .technician-jobs-table tbody,
+  .sales-appointments-table tbody,
+  .admin-appointments-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .technician-jobs-table tbody tr,
+  .sales-appointments-table tbody tr,
+  .admin-appointments-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--color-brand-200);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .technician-jobs-table.crud-table td,
+  .sales-appointments-table.crud-table td,
+  .admin-appointments-table.crud-table td {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 30%) minmax(0, 1fr);
+    gap: 0.5rem;
+    width: auto;
+    padding: 0.65rem 0.75rem;
+    white-space: normal;
+    text-align: left;
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .technician-jobs-table td::before,
+  .sales-appointments-table td::before,
+  .admin-appointments-table td::before {
+    content: attr(data-label);
+    color: var(--color-neutral-600);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .technician-jobs-table td[data-label="Notes"] > div {
+    min-width: 0;
+    max-width: none;
+  }
+
+  .technician-jobs-table td[data-label="Actions"] > div,
+  .sales-appointments-table td[data-label="Actions"] > div,
+  .admin-appointments-table td[data-label="Actions"] > div {
+    justify-content: flex-start;
+  }
+
+  .sales-appointments-table td[data-label="Status"] > span,
+  .admin-appointments-table td[data-label="Status"] > span {
+    width: fit-content;
+    justify-self: start;
+  }
+
+  .technician-jobs-table td:last-child,
+  .sales-appointments-table td:last-child,
+  .admin-appointments-table td:last-child {
+    border-bottom: 0;
   }
 }

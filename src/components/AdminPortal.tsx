@@ -365,7 +365,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       {isTechnicianView && (
         <div className="space-y-6">
           {/* Tech selector — admins can browse every tech; logged-in technicians are scoped to their own jobs */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col items-start gap-2">
             <span className="text-[11px] text-zinc-400 font-semibold">Viewing jobs for:</span>
             {authRole === 'admin' ? (
               technicians.map(t => (
@@ -389,8 +389,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             )}
           </div>
 
-          <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-            <table className="w-full min-w-[1150px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
+          <div className="technician-jobs-table-wrapper rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
+            <table className="w-full min-w-[1150px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table technician-jobs-table">
               <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                 <tr>
                   <th className="px-4 py-3.5">ID / Date</th>
@@ -429,17 +429,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
                     return (
                       <tr key={apt.id} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="px-4 py-3 font-mono">
+                        <td data-label="ID / Date" className="px-4 py-3 font-mono">
                           <span className="text-white font-bold">{apt.id.toUpperCase()}</span>
                           <div className="text-[11px] text-zinc-500">{apt.scheduledDate} {apt.scheduledTime}</div>
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td data-label="Customer" className="px-4 py-3">
                           <div className="font-semibold text-white">{apt.customerName}</div>
                           <div className="text-[11px] text-zinc-400">{apt.customerPhone}</div>
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td data-label="Vehicle" className="px-4 py-3">
                           <div className="font-semibold text-zinc-200">
                             {apt.vehicleYear} {apt.vehicleMake} {apt.vehicleModel}
                           </div>
@@ -448,21 +448,23 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           </span>
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td data-label="Service Package" className="px-4 py-3">
                           <div className="font-medium text-white line-clamp-1">{apt.serviceName}</div>
                         </td>
 
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${stageColor}`}>
+                        <td data-label="Stage" className="px-4 py-3">
+                          <span className={`w-fit justify-self-start text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${stageColor}`}>
                             {stageLabel}
                           </span>
                         </td>
 
-                        <td className="px-4 py-3 text-zinc-400">
-                          {apt.technicianNotes || '—'}
+                        <td data-label="Notes" className="px-4 py-3 text-zinc-400">
+                          <div className="min-w-[220px] max-w-[320px] whitespace-normal break-words leading-relaxed">
+                            {apt.technicianNotes || '—'}
+                          </div>
                         </td>
 
-                        <td className="px-4 py-3 text-right">
+                        <td data-label="Actions" className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             {apt.status === 'confirmed' && (
                               <button
@@ -949,8 +951,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
 
           {/* Appointments Table */}
-          <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-            <table className="w-full min-w-[1300px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
+          <div className={`${isSalesView ? 'sales-appointments-table-wrapper' : 'admin-appointments-table-wrapper'} rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl`}>
+            <table className={`w-full min-w-[1300px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table ${isSalesView ? 'sales-appointments-table' : 'admin-appointments-table'}`}>
               <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                 <tr>
                   <th className="px-4 py-3.5">ID / Date</th>
@@ -976,17 +978,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   })
                   .map((apt) => (
                     <tr key={apt.id} className="hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-4 py-3 font-mono">
+                      <td data-label="ID / Date" className="px-4 py-3 font-mono">
                         <span className="text-white font-bold">{apt.id.toUpperCase()}</span>
                         <div className="text-[11px] text-zinc-500">{apt.scheduledDate} {apt.scheduledTime}</div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td data-label="Customer" className="px-4 py-3">
                         <div className="font-semibold text-white">{apt.customerName}</div>
                         <div className="text-[11px] text-zinc-400">{apt.customerPhone}</div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td data-label="Vehicle" className="px-4 py-3">
                         <div className="font-semibold text-zinc-200">
                           {apt.vehicleYear} {apt.vehicleMake} {apt.vehicleModel}
                         </div>
@@ -995,7 +997,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         </span>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td data-label="Service Package" className="px-4 py-3">
                         <div className="font-medium text-white line-clamp-1">{apt.serviceName}</div>
                         {apt.additionalServices.length > 0 && (
                           <span className="text-[10px] text-red-400">
@@ -1004,12 +1006,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         )}
                       </td>
 
-                      <td className="px-4 py-3 font-medium text-zinc-300">
+                      <td data-label="Tech Assigned" className="px-4 py-3 font-medium text-zinc-300">
                         {apt.assignedTechnician}
                       </td>
 
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      <td data-label="Status" className="px-4 py-3">
+                        <span className={`w-fit justify-self-start text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                           apt.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
                           apt.status === 'ready_for_pickup' ? 'bg-green-500/20 text-green-400 border border-green-500/30 animate-pulse' :
                           apt.status === 'in_repair' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
@@ -1021,11 +1023,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 font-mono font-bold text-white">
+                      <td data-label="Total" className="px-4 py-3 font-mono font-bold text-white">
                         {formatPrice(apt.totalCost)}
                       </td>
 
-                      <td className="px-4 py-3 text-right">
+                      <td data-label="Actions" className="px-4 py-3 text-right">
                         {isSalesView ? (
                           <span className="text-[10px] text-zinc-600 font-mono uppercase">Read-only</span>
                         ) : (

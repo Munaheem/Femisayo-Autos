@@ -191,7 +191,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ customerAccounts, onLogin,
               FEMISAYO <span className="text-red-500">AUTOS</span>
             </h1>
             <p className="text-xs text-zinc-400 font-mono mt-1">
-              Auto Repair Shop • Lekki, Lagos • CAC BN-2641123
+              Auto Repair Shop • Lekki, Lagos
             </p>
           </div>
 
@@ -266,7 +266,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ customerAccounts, onLogin,
                 </div>
 
                 {error && (
-                  <p className="text-xs text-red-400 font-semibold bg-red-950/40 border border-red-500/30 rounded-lg px-3 py-2">
+                  <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
                     {error}
                   </p>
                 )}
@@ -442,11 +442,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ customerAccounts, onLogin,
 
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-[11px] text-zinc-500 mt-6 font-mono">
             <span className="flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> +234 802 317 9860</span>
-            <span className="flex items-center gap-1"><MapPin className="w-3 h-3 shrink-0" /> Lekki, Lagos</span>
             <span className="flex items-center gap-1"><Car className="w-3 h-3 shrink-0" /> Est. 2018</span>
           </div>
           <p className="text-center text-[11px] text-zinc-500 mt-2 font-mono">
-            © {new Date().getFullYear()} Femisayo Autos. Role-Based Access Control.
+            © {new Date().getFullYear()} Femisayo Autos. All rights reserved. <br className="sm:hidden" />
+            {/* Removed CAC registration number to streamline footer */}
+            {/* CAC BN-2641123 */}
           </p>
         </div>
       </div>

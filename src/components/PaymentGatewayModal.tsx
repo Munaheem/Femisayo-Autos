@@ -89,7 +89,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
   const getCardBrand = (num: string) => {
     const clean = num.replace(/\D/g, '');
     if (clean.startsWith('4')) return { brand: 'VISA', color: 'from-blue-700 to-indigo-900' };
-    if (clean.startsWith('5') || clean.startsWith('2')) return { brand: 'MASTERCARD', color: 'from-orange-600 to-red-800' };
+    if (clean.startsWith('5') || clean.startsWith('2')) return { brand: 'MASTERCARD', color: 'from-orange-600 to-rose-800' };
     if (clean.startsWith('3')) return { brand: 'AMEX', color: 'from-emerald-700 to-teal-900' };
     return { brand: 'APEX VAULT', color: 'from-zinc-800 to-zinc-950' };
   };
@@ -386,7 +386,7 @@ export const PaymentGatewayModal: React.FC<PaymentGatewayModalProps> = ({
             </div>
 
             {formError && (
-              <div className="flex items-center gap-2 bg-red-950/40 border border-red-500 text-red-400 text-xs rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 bg-rose-50 border border-rose-300 text-rose-700 text-xs rounded-xl px-3 py-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>

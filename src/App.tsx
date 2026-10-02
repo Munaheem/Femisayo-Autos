@@ -990,136 +990,7 @@ export default function App() {
             </section>
 
             {/* Official Business Profile & Registry Verification Section */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-              <div className="rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-black border border-zinc-800 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-                {/* Background decorative watermark */}
-                <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 rounded-full bg-red-600/5 blur-3xl pointer-events-none" />
-
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-zinc-800">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/60 border border-red-600/40 text-red-400 text-xs font-semibold uppercase tracking-wider mb-2">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Verified Nigerian Business Entity</span>
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-                      FEMISAYO AUTOS • LEKKI, LAGOS
-                    </h3>
-                    <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-2xl">
-                      Automobile Repairs &amp; Mechanical Services Workshop. Fully certified and registered with the Corporate Affairs Commission (CAC).
-                    </p>
-                  </div>
-
-                  {/* Google Rating Badge */}
-                  <div className="flex items-center gap-4 bg-zinc-950/90 border border-zinc-800 p-4 rounded-2xl shrink-0">
-                    <div className="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
-                      <Star className="w-6 h-6 fill-yellow-400" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-black text-white font-mono">4.4</span>
-                        <div className="flex text-yellow-400 text-xs">★★★★☆</div>
-                      </div>
-                      <p className="text-[11px] text-zinc-400 font-medium">8 Verified Google Reviews</p>
-                      <span className="text-[10px] text-emerald-400 font-mono font-semibold">Category: Auto repair shop</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grid of Key Business Data & Addresses */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-                  
-                  {/* Card 1: Official CAC Business Registration */}
-                  <div className="bg-zinc-950/70 border border-zinc-800/90 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-red-400 uppercase tracking-wider font-mono">
-                      <FileText className="w-4 h-4 text-red-500" />
-                      <span>CAC Registration Record</span>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between border-b border-zinc-800/80 pb-1.5">
-                        <span className="text-zinc-500">Business Name:</span>
-                        <span className="text-zinc-200 font-bold font-mono">FEMISAYO AUTOS</span>
-                      </div>
-                      <div className="flex justify-between border-b border-zinc-800/80 pb-1.5">
-                        <span className="text-zinc-500">Registration No:</span>
-                        <span className="text-emerald-400 font-bold font-mono">BN-2641123</span>
-                      </div>
-                      <div className="flex justify-between border-b border-zinc-800/80 pb-1.5">
-                        <span className="text-zinc-500">Registration Date:</span>
-                        <span className="text-zinc-200 font-medium">15 August 2018</span>
-                      </div>
-                      <div className="flex justify-between border-b border-zinc-800/80 pb-1.5">
-                        <span className="text-zinc-500">Entity Structure:</span>
-                        <span className="text-zinc-300">Sole Proprietor</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-zinc-500">Primary Activity:</span>
-                        <span className="text-red-400 font-medium">Automobile repairs &amp; mechanical</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Workshop Locations & Annex */}
-                  <div className="bg-zinc-950/70 border border-zinc-800/90 rounded-2xl p-5 space-y-3">
-                    <div className="flex items-center gap-2 text-xs font-bold text-red-400 uppercase tracking-wider font-mono">
-                      <MapPin className="w-4 h-4 text-red-500" />
-                      <span>Workshop Locations</span>
-                    </div>
-                    <div className="space-y-2.5 text-xs">
-                      <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/60">
-                        <div className="text-[10px] font-bold text-red-400 uppercase">Primary Workshop</div>
-                        <p className="text-zinc-200 mt-0.5 leading-snug">
-                          Ilasan New Road, behind Emardeb Filling Station, Eti-Osa, Lekki, Lagos.
-                        </p>
-                      </div>
-                      <div className="bg-zinc-900/60 p-2.5 rounded-xl border border-zinc-800/60">
-                        <div className="text-[10px] font-bold text-zinc-400 uppercase">Secondary Annex</div>
-                        <p className="text-zinc-200 mt-0.5 leading-snug">
-                          FemisayoAutos Annex in Ilasan, Lekki.
-                        </p>
-                      </div>
-                      <div className="text-[11px] text-zinc-400">
-                        <strong className="text-zinc-300">Registry Office:</strong> 1 Samuel Adedoyin Street, opposite Zion Court, Lekki, Elegushi, Lagos State.
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Working Hours & Hotline */}
-                  <div className="bg-zinc-950/70 border border-zinc-800/90 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 text-xs font-bold text-red-400 uppercase tracking-wider font-mono">
-                        <Clock className="w-4 h-4 text-red-500" />
-                        <span>Working Hours &amp; Contact</span>
-                      </div>
-                      <div className="mt-3 space-y-2 text-xs">
-                        <div className="flex justify-between border-b border-zinc-800/80 pb-1.5">
-                          <span className="text-zinc-500">Monday – Saturday:</span>
-                          <span className="text-white font-mono font-bold">7:00 AM – 7:30 PM</span>
-                        </div>
-                        <div className="flex justify-between border-b border-zinc-800/80 pb-1.5">
-                          <span className="text-zinc-500">Sunday:</span>
-                          <span className="text-zinc-400">Closed (On-Call Recovery)</span>
-                        </div>
-                        <div className="flex justify-between pb-1">
-                          <span className="text-zinc-500">Hotline:</span>
-                          <a href="tel:+2348023179860" className="text-emerald-400 font-mono font-bold hover:underline">
-                            +234 802 317 9860
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-
-                    <a
-                      href="tel:+2348023179860"
-                      className="mt-3 w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-700/30 transition-all text-center"
-                    >
-                      <Phone className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Call / WhatsApp: +234 802 317 9860</span>
-                    </a>
-                  </div>
-
-                </div>
-              </div>
-            </section>
+            {/* Removed Business Profile Banner */}
 
             {/* Featured Parts Banner */}
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
@@ -1366,6 +1237,7 @@ export default function App() {
       />
 
       {/* 3. Global Footer */}
+      {activeTab !== 'admin' && (
       <footer className="bg-zinc-950 border-t border-zinc-800/80 pt-10 sm:pt-12 lg:pt-16 pb-8 sm:pb-12 mt-12 sm:mt-16 lg:mt-20 text-zinc-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
@@ -1387,10 +1259,6 @@ export default function App() {
                 <div className="flex items-center gap-2 text-emerald-400">
                   <ShieldCheck className="w-4 h-4" />
                   <span>CAC Registered: BN-2641123 (Est. 2018)</span>
-                </div>
-                <div className="flex items-center gap-2 text-yellow-400">
-                  <Star className="w-4 h-4 fill-yellow-400" />
-                  <span>4.4/5 Google Rating (8 Reviews)</span>
                 </div>
               </div>
             </div>
@@ -1414,11 +1282,6 @@ export default function App() {
                 <li>
                   <button onClick={() => navigateTo('parts')} className="hover:text-red-400 transition-colors">
                     OEM &amp; Performance Parts
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('about')} className="hover:text-red-400 transition-colors">
-                    About Us
                   </button>
                 </li>
                 <li>
@@ -1531,7 +1394,7 @@ export default function App() {
           {/* Bottom Bar */}
           <div className="border-t border-zinc-800/80 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
             <p className="text-zinc-600 text-[11px] font-mono text-center sm:text-left">
-              &copy; {new Date().getFullYear()} FEMISAYO AUTOS. All rights reserved. CAC Reg: BN-2641123
+              &copy; {new Date().getFullYear()} FEMISAYO AUTOS. All rights reserved.
             </p>
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4 text-zinc-600 text-[11px]">
               <span className="hover:text-zinc-400 cursor-pointer transition-colors">Privacy Policy</span>
@@ -1548,6 +1411,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }

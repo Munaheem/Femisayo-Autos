@@ -62,7 +62,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
               <h1 className="text-3xl sm:text-4xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] uppercase font-mono">
                 More Than Repairs.
                 <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-500 to-red-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-blue-500 to-sky-400">
                   We Keep You Moving.
                 </span>
               </h1>
@@ -91,20 +91,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
               </div>
 
               {/* Quick proof bar */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2 text-xs">
-                <span className="bg-zinc-900 border border-zinc-700/80 px-2.5 py-1.5 rounded-lg text-yellow-300 font-semibold flex items-center gap-1.5">
-                  <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                  <span>4.4/5 Rating</span>
-                </span>
-                <span className="bg-zinc-900 border border-zinc-700/80 px-2.5 py-1.5 rounded-lg text-emerald-400 font-semibold flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5" />
-                  <span>CAC Reg: BN-2641123</span>
-                </span>
-                <span className="bg-zinc-900 border border-zinc-700/80 px-2.5 py-1.5 rounded-lg text-zinc-300 font-semibold flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-red-400" />
-                  <span>2 Lekki Locations</span>
-                </span>
-              </div>
+              {/* Removed the quick proof bar to streamline the hero section and focus on primary actions */}
             </div>
 
             {/* Image */}
@@ -163,26 +150,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
                 problem, and providing a solution our customers can rely on.
               </p>
               <p>
-                Registered with the CAC (BN-2641123) and operating from our Ilasan New Road
-                workshop with a dedicated annex, we serve private owners, families, and businesses
+                Established in 2018 and registered with the CAC (BN-2641123), we operate from our Ilasan New Road
+                workshop with a dedicated annex, serving private owners, families, and businesses
                 across Lekki — from everyday commuters to high-performance vehicles.
               </p>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div className="text-red-400 font-mono font-black text-xl sm:text-2xl">2018</div>
-                <div className="text-[11px] text-zinc-400 mt-1">Established</div>
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div className="text-yellow-400 font-mono font-black text-xl sm:text-2xl">4.4★</div>
-                <div className="text-[11px] text-zinc-400 mt-1">Google Rating</div>
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div className="text-emerald-400 font-mono font-black text-xl sm:text-2xl">2 Bays</div>
-                <div className="text-[11px] text-zinc-400 mt-1">Lekki &amp; Annex</div>
-              </div>
-            </div>
+            {/*Removed The Quick Info Bar */}
 
             <div className="flex items-start gap-2 text-xs text-zinc-400 bg-zinc-900/60 border border-red-500/20 rounded-xl p-3.5">
               <Sparkles className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
@@ -391,29 +364,8 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBookService, onExploreCa
       {/* ============================================================
           6. TRUST / NUMBERS
       ============================================================ */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 text-center">
-            <div className="text-red-500 font-mono font-black text-3xl sm:text-4xl">2018</div>
-            <div className="text-xs text-zinc-400 mt-2">Established</div>
-          </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 text-center">
-            <div className="text-yellow-400 font-mono font-black text-3xl sm:text-4xl">4.4/5</div>
-            <div className="text-xs text-zinc-400 mt-2">Google Rating</div>
-          </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 text-center">
-            <div className="text-emerald-400 font-mono font-black text-3xl sm:text-4xl">23</div>
-            <div className="text-xs text-zinc-400 mt-2">Service Packages</div>
-          </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 text-center">
-            <div className="text-sky-400 font-mono font-black text-3xl sm:text-4xl">2</div>
-            <div className="text-xs text-zinc-400 mt-2">Lekki Locations</div>
-          </div>
-        </div>
-        <p className="text-center text-[11px] text-zinc-600 mt-4 font-mono">
-          CAC Registered &middot; BN-2641123 &middot; Est. 2018 &middot; 4.4/5 from 8 Google Reviews
-        </p>
-      </section>
+      {/* Removed the trust numbers section to streamline the page and focus on core services */}
+
 
       {/* ============================================================
           7. WORKSHOP / TEAM

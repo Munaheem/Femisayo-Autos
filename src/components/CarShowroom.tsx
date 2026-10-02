@@ -130,7 +130,7 @@ export const CarShowroom: React.FC<CarShowroomProps> = ({
       
       {/* Header Banner (Matching Reference Image 2) */}
       <div className="text-center max-w-3xl mx-auto mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/40 border border-red-600/30 text-red-400 text-xs font-semibold uppercase tracking-wider mb-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-700 border border-blue-700 text-white text-xs font-semibold uppercase tracking-wider mb-3">
           <Car className="w-3.5 h-3.5" />
           <span>Femisayo Autos Certified Pre-Owned &amp; Verified Vehicle Sales • Lekki, Lagos</span>
         </div>

@@ -110,7 +110,7 @@ export const PartsStore: React.FC<PartsStoreProps> = ({
 
       {/* Header Banner */}
       <div className="text-center max-w-3xl mx-auto mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/40 border border-red-600/30 text-red-400 text-xs font-semibold uppercase tracking-wider mb-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-700 border border-blue-700 text-white text-xs font-semibold uppercase tracking-wider mb-3">
           <ShoppingBag className="w-3.5 h-3.5" />
           <span>Genuine Spare Parts &amp; Premium Car Accessories</span>
         </div>
@@ -360,9 +360,9 @@ export const PartsStore: React.FC<PartsStoreProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-10 sm:mt-14">
         
         {/* Deal 1: 15% Off */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-950 via-zinc-900 to-black p-6 sm:p-8 border border-red-600/30 flex flex-col justify-between">
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-red-50 via-white to-red-100 p-6 sm:p-8 border border-red-200 flex flex-col justify-between">
           <div>
-            <span className="text-[11px] font-black uppercase text-red-400 tracking-widest">
+            <span className="text-[11px] font-black uppercase text-red-700 tracking-widest">
               LIMITED TIME OFFER
             </span>
             <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-white font-mono mt-1">

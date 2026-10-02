@@ -60,29 +60,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
-        <div className="w-full sm:w-screen max-w-full sm:max-w-md bg-zinc-950 border-l border-zinc-800 text-zinc-100 flex flex-col shadow-2xl">
+        <div className="w-full sm:w-screen max-w-full sm:max-w-md bg-brand-50 border-l-2 border-brand-200 text-ink flex flex-col shadow-2xl shadow-slate-950/30">
           
           {/* Header */}
-          <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+          <div className="p-5 bg-white border-b border-brand-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-red-500" />
-              <h3 className="text-lg font-black font-mono text-white">SHOPPING CART</h3>
-              <span className="text-xs bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded-full font-bold">
+              <h3 className="text-lg font-black font-mono text-ink">SHOPPING CART</h3>
+              <span className="text-xs bg-brand-100 text-brand-800 border border-brand-200 px-2 py-0.5 rounded-full font-bold">
                 {cartItems.reduce((acc, item) => acc + item.quantity, 0)} items
               </span>
             </div>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
+              className="p-1.5 rounded-lg bg-brand-50 text-zinc-600 hover:text-ink hover:bg-brand-100"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Dispatch & Delivery Info */}
-          <div className="bg-zinc-900/90 px-5 py-3 border-b border-zinc-800">
-            <div className="flex items-center gap-2 text-xs text-zinc-300 font-semibold">
+          <div className="bg-brand-100/70 px-5 py-3 border-b border-brand-200">
+            <div className="flex items-center gap-2 text-xs text-brand-800 font-semibold">
               <Truck className="w-3.5 h-3.5 text-red-400" />
               <span>Free dispatch within Lekki · Outside Lekki, call <a href="tel:+2348023179860" className="text-red-400 hover:underline">+234 802 317 9860</a> for rates</span>
             </div>
@@ -192,7 +192,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   </p>
                 )}
                 {couponError && (
-                  <p className="text-[11px] text-red-400">{couponError}</p>
+                  <p className="text-[11px] text-rose-600">{couponError}</p>
                 )}
               </form>
 

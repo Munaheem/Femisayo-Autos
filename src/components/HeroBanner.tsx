@@ -71,7 +71,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   };
 
   return (
-    <div className="relative w-full bg-[#0a0c10] overflow-hidden border-b border-zinc-800">
+    <div className="hero-banner relative w-full bg-zinc-950 overflow-hidden border-b border-zinc-800">
       
       {/* Background Hero Video with Radial Gradient Vignette */}
       <div className="absolute inset-0 z-0">
@@ -92,37 +92,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           
           {/* Left Hero Content */}
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-950/60 border border-red-600/40 text-red-400 text-xs font-semibold tracking-wider uppercase">
-              <Award className="w-3.5 h-3.5" />
-              <span>Femisayo Autos • CAC Reg: BN-2641123 • Eti-Osa, Lekki, Lagos</span>
-            </div>
+          {/* Removed Hero Title and Description */}
 
             <div className="space-y-2">
               <h1 className="text-3xl sm:text-4xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] uppercase font-mono">
                 Expert Auto Repair &amp; <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-500 to-red-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-blue-500 to-sky-400">
                   Mechanical Services.
                 </span>
               </h1>
-              <p className="text-zinc-300 text-sm sm:text-base lg:text-lg max-w-xl font-normal leading-relaxed pt-2">
+              <p className="text-white/80 text-sm sm:text-base lg:text-lg max-w-xl font-normal leading-relaxed pt-2">
                 Located on Ilasan New Road (behind Emardeb Filling Station) and FemisayoAutos Annex in Ilasan, Lekki. Full automotive diagnostics, mechanical overhauls, car showroom, and genuine parts.
               </p>
               
               {/* Quick Info Bar */}
-              <div className="pt-2 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-zinc-300">
-                <span className="bg-zinc-900 border border-zinc-700/80 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-yellow-300 font-semibold text-[11px] sm:text-xs">
-                  <span>★ 4.4/5 Rating</span>
-                  <span className="text-zinc-400 font-normal hidden sm:inline">(8 Google Reviews)</span>
-                </span>
-                <span className="bg-zinc-900 border border-zinc-700/80 px-2.5 py-1.5 rounded-lg text-emerald-400 font-semibold text-[11px] sm:text-xs hidden sm:inline">
-                  Mon–Sat: 7:00 AM – 7:30 PM
-                </span>
-                <a 
-                  href="tel:+2348023179860" 
-                  className="bg-red-600/20 border border-red-500/40 px-2.5 py-1.5 rounded-lg text-red-300 hover:text-white font-mono font-bold text-[11px] sm:text-xs"
-                >
-                  📞 +234 802 317 9860
-                </a>
+              {/* Removed the quick info bar to streamline the hero section and focus on primary actions*/}
               </div>
             </div>
 
@@ -222,59 +206,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </div>
 
         {/* Value Proposition Trust Badges Bar */}
-        <div className="mt-10 sm:mt-14 pt-6 sm:pt-8 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-red-400 shrink-0">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">CAC Registered</h4>
-              <p className="text-[11px] text-zinc-400">BN-2641123 • Est. 2018</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-red-400 shrink-0">
-              <Truck className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">2 Lekki Locations</h4>
-              <p className="text-[11px] text-zinc-400">Behind Emardeb &amp; Annex</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-red-400 shrink-0">
-              <RotateCcw className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Extended Hours</h4>
-              <p className="text-[11px] text-zinc-400">7:00 AM – 7:30 PM (Mon–Sat)</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-yellow-400 shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">4.4★ Rating</h4>
-              <p className="text-[11px] text-zinc-400">8 Verified Google Reviews</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 col-span-2 md:col-span-1">
-            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400 shrink-0">
-              <Headphones className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Direct Hotline</h4>
-              <p className="text-[11px] text-zinc-400">+234 802 317 9860</p>
-            </div>
-          </div>
-        </div>
+        {/* Removed the trust badges bar to streamline the hero section and focus on primary actions */}
 
       </div>
-    </div>
+     
   );
 };
