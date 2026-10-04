@@ -150,6 +150,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       return;
     }
 
+        if (api.isConfigured) {
+      setError('Unable to sign in. Please check your credentials or try again later.');
+      return;
+    }
+
     // Demo fallback.
     if (portal === 'customer') {
       const account = customerAccounts.find(
