@@ -34,6 +34,8 @@ interface LoginPageProps {
   customerAccounts: AuthUser[];
   onLogin: (role: UserRole, email?: string) => void;
   onRegister: (user: AuthUser) => void;
+  allowedStaffRoles?: Exclude<UserRole, 'customer'>[];
+  adminOnly?: boolean;
   /** When provided, the page is shown as an optional overlay (guest can close it). */
   onClose?: () => void;
 }
@@ -83,12 +85,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   customerAccounts,
   onLogin,
   onRegister,
+  allowedStaffRoles,
+  adminOnly = false,
   onClose,
 }) => {
-  const [portal, setPortal] = useState<'customer' | 'staff'>('customer');
+  const staffRoles = allowedStaffRoles ?? STAFF_ROLES;
+  const [portal, setPortal] = useState<'customer' | 'staff'>(adminOnly ? 'staff' : 'customer');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [staffRole, setStaffRole] =
-    useState<Exclude<UserRole, 'customer'>>('admin');
+    useState<Exclude<UserRole, 'customer'>>(staffRoles[0] ?? 'admin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -288,7 +293,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
 
           {/* Portal Tabs */}
-          <div className="grid grid-cols-2 gap-1.5 bg-zinc-900 border border-zinc-800 p-1.5 rounded-xl mb-6">
+          {!adminOnly && <div className="grid grid-cols-2 gap-1.5 bg-zinc-900 border border-zinc-800 p-1.5 rounded-xl mb-6">
             <button
               type="button"
               onClick={() => {
@@ -322,7 +327,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <ShieldCheck className="w-4 h-4" />
               Staff Login
             </button>
-          </div>
+          </div>}
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl">
             {portal === 'customer' && isRegisterMode ? (
@@ -476,32 +481,44 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                      <UserCog className="w-4 h-4 text-red-400" />
-                      Staff Role
-                    </p>
+                  staffRoles.length > 1 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                        <UserCog className="w-4 h-4 text-red-400" />
+                        Staff Role
+                      </p>
 
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {STAFF_ROLES.map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => {
-                            setStaffRole(r);
-                            setError('');
-                          }}
-                          className={`px-2 py-2.5 rounded-xl text-xs font-bold capitalize border transition-all ${
-                            staffRole === r
-                              ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/40'
-                              : 'text-zinc-400 hover:text-white border-zinc-700 hover:bg-zinc-800'
-                          }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
+                      <div className={`grid ${staffRoles.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-1.5`}>
+                        {staffRoles.map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => {
+                              setStaffRole(r);
+                              setError('');
+                            }}
+                            className={`px-2 py-2.5 rounded-xl text-xs font-bold capitalize border transition-all ${
+                              staffRole === r
+                                ? 'bg-red-600 text-white border-red-500 shadow-md shadow-red-900/40'
+                                : 'text-zinc-400 hover:text-white border-zinc-700 hover:bg-zinc-800'
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${ROLE_META[staffRole].color}`}>
+                      <ShieldCheck className="w-5 h-5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider">
+                          {ROLE_META[staffRole].label} Portal
+                        </p>
+                        <p className="text-[11px] opacity-80">{ROLE_META[staffRole].desc}</p>
+                      </div>
+                    </div>
+                  )
                 )}
 
                 {/* Email */}
@@ -605,7 +622,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           </button>
                         ))
                       ) : (
-                        STAFF_ROLES.map((role) => (
+                        staffRoles.map((role) => (
                           <button
                             key={role}
                             type="button"

@@ -1,5 +1,7 @@
 // @ts-nocheck React type declarations are unavailable in the current project setup.
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import ImageGalleryEditor from './ImageGalleryEditor';
 
 // Keep this component type-checkable when React's type packages are not installed.
@@ -70,10 +72,31 @@ const STAFF_TECH_BY_EMAIL: Record<string, string> = {
   'technician@femisayo.com': 'Femi Adeyemi'
 };
 
+const confirmDelete = async (
+  itemName: string,
+  collection: 'inventory' | 'appointments',
+  onConfirm: () => void
+) => {
+  const result = await Swal.fire({
+    title: 'Are you sure you want to delete?',
+    text: `${itemName} will be permanently removed from ${collection}.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Delete',
+    cancelButtonText: 'Cancel',
+    reverseButtons: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#52525b',
+    background: '#18181b',
+    color: '#f4f4f5'
+  });
+
+  if (result.isConfirmed) onConfirm();
+};
+
 interface AdminPortalProps {
   currentRole: UserRole;
   authRole: UserRole;
-  setRole: (role: UserRole) => void;
   /** Staff identity used to scope workspaces (e.g. which technician a technician login maps to). */
   staffEmail?: string | null;
   appointments: Appointment[];
@@ -101,7 +124,6 @@ interface AdminPortalProps {
 export const AdminPortal: React.FC<AdminPortalProps> = ({
   currentRole,
   authRole,
-  setRole,
   staffEmail,
   appointments,
   onUpdateAppointment,
@@ -295,46 +317,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-white font-mono mt-1">
-            WORKSHOP OPERATIONS &amp; CRUD MANAGEMENT
+            WORKSHOP OPERATIONS &amp; MANAGEMENT
           </h2>
           <p className="text-xs text-zinc-400 mt-1">
             Real-time appointment scheduling, inventory lifecycle, privacy-compliant encrypted customer records, and live bay telematics.
           </p>
         </div>
 
-        {/* Staff Role Switcher Toolbar — only the admin identity can switch; technicians & sales are locked */}
-        {authRole === 'admin' ? (
-          <div className="flex flex-wrap items-center gap-1.5 bg-zinc-900 border border-zinc-800 p-1.5 rounded-xl w-full sm:w-auto">
-            <span className="text-[11px] text-zinc-400 font-semibold px-1 sm:px-2">Role:</span>
-            {(['technician', 'sales', 'admin'] as UserRole[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRole(r)}
-                className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all text-center ${
-                  currentRole === r
-                    ? 'bg-red-600 text-white shadow-md shadow-red-700/30'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center gap-1.5 bg-zinc-900 border border-zinc-800 p-1.5 rounded-xl w-full sm:w-auto">
-            <span className="text-[11px] text-zinc-400 font-semibold px-1 sm:px-2">Role:</span>
-            <span className={`flex-1 sm:flex-none px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all text-center ${
-              currentRole === 'technician'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-700/30'
-                : 'bg-amber-600 text-white shadow-md shadow-amber-700/30'
-            }`}>
-              {currentRole}
-            </span>
-            <span className="text-[10px] text-zinc-500 font-mono flex items-center gap-1 px-1">
-              <Lock className="w-3 h-3" /> locked
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Technician sees only their assigned, in-progress and finished jobs */}
@@ -524,56 +513,56 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       )}
       {/* Navigation Tabs (hidden for technician workspace; sales get inventory/orders/appointments only) */}
       {!isTechnicianView && (
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 border-b border-zinc-800/80 no-scrollbar">
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch gap-2 pb-4 mb-8 border-b border-zinc-800/80">
         {!isSalesView && (
         <button
           onClick={() => setActiveTab('analytics')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`w-full sm:w-auto min-w-0 justify-center px-2 sm:px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 text-center leading-tight whitespace-normal ${
             activeTab === 'analytics'
               ? 'bg-red-600 text-white shadow-md shadow-red-700/30'
               : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
           <BarChart3 className="w-4 h-4" />
-          <span>Analytics &amp; KPIs</span>
+          <span>Analytics</span>
         </button>
         )}
 
         <button
           onClick={() => setActiveTab('appointments')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`w-full sm:w-auto min-w-0 justify-center px-2 sm:px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 text-center leading-tight whitespace-normal ${
             activeTab === 'appointments'
               ? 'bg-red-600 text-white shadow-md shadow-red-700/30'
               : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>{isSalesView ? `Service Appointments (${appointments.length})` : `Appointments CRUD (${appointments.length})`}</span>
+          <span>Appointments ({appointments.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`w-full sm:w-auto min-w-0 justify-center px-2 sm:px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 text-center leading-tight whitespace-normal ${
             activeTab === 'inventory'
               ? 'bg-red-600 text-white shadow-md shadow-red-700/30'
               : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
           <Package className="w-4 h-4" />
-          <span>Inventory CRUD ({parts.length + vehicles.length})</span>
+          <span>Inventory ({parts.length + vehicles.length})</span>
         </button>
 
         {!isSalesView && (
         <button
           onClick={() => setActiveTab('customers')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`w-full sm:w-auto min-w-0 justify-center px-2 sm:px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 text-center leading-tight whitespace-normal ${
             activeTab === 'customers'
               ? 'bg-red-600 text-white shadow-md shadow-red-700/30'
               : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Customer Records &amp; Privacy Vault</span>
+          <span>Customers</span>
           <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800 px-1.5 py-0.2 rounded">
             AES-256
           </span>
@@ -582,14 +571,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         <button
           onClick={() => setActiveTab('tracking')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 whitespace-nowrap ${
+          className={`col-span-2 sm:col-span-1 w-full sm:w-auto min-w-0 justify-center px-2 sm:px-4 py-2.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-2 text-center leading-tight whitespace-normal ${
             activeTab === 'tracking'
               ? 'bg-red-600 text-white shadow-md shadow-red-700/30'
               : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
           }`}
         >
           <Truck className="w-4 h-4" />
-          <span>Live Bays &amp; Delivery Tracking</span>
+          <span>Tracking</span>
         </button>
       </div>
       )}
@@ -903,7 +892,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 2. APPOINTMENTS CRUD TAB */}
+      {/* 2. APPOINTMENTS TAB */}
       {/* ========================================================================= */}
       {!isTechnicianView && activeTab === 'appointments' && (
         <div className="space-y-6">
@@ -1079,7 +1068,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           </button>
 
                           <button
-                            onClick={() => onDeleteAppointment(apt.id)}
+                            onClick={() => { void confirmDelete(`${apt.id} - ${apt.customerName} (${apt.vehicleYear} ${apt.vehicleMake} ${apt.vehicleModel})`, 'appointments', () => onDeleteAppointment(apt.id)); }}
                             className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-red-400 hover:bg-zinc-700"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1097,7 +1086,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 3. INVENTORY CRUD TAB (PARTS & VEHICLES) */}
+      {/* 3. INVENTORY TAB (PARTS & VEHICLES) */}
       {/* ========================================================================= */}
       {!isTechnicianView && activeTab === 'inventory' && (
         <div className="space-y-6">
@@ -1208,7 +1197,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           </button>
                           {!isSalesView && (
                             <button
-                              onClick={() => onDeletePart(p.id)}
+                              onClick={() => { void confirmDelete(p.name, 'inventory', () => onDeletePart(p.id)); }}
                               className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-red-400"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1278,7 +1267,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           </button>
                           {!isSalesView && (
                           <button
-                            onClick={() => onDeleteVehicle(v.id)}
+                            onClick={() => { void confirmDelete(`${v.year} ${v.make} ${v.model}`, 'inventory', () => onDeleteVehicle(v.id)); }}
                             className="p-1.5 rounded-lg bg-zinc-800 text-zinc-400 hover:text-red-400"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1297,7 +1286,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 4. CUSTOMER RECORDS & DATA PRIVACY COMPLIANCE VAULT CRUD */}
+      {/* 4. CUSTOMER RECORDS & DATA PRIVACY COMPLIANCE VAULT */}
       {/* ========================================================================= */}
       {!isTechnicianView && !isSalesView && activeTab === 'customers' && (
         <div className="space-y-6">

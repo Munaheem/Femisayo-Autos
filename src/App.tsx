@@ -134,10 +134,12 @@ const parseHash = (): AppTab => {
   return 'home';
 };
 
+const isAdminSubdomain = window.location.hostname.toLowerCase().startsWith('admin.');
+
 export default function App() {
   const { formatPrice } = useCurrency();
   // Navigation & Role State
-  const [activeTab, setActiveTab] = useState<AppTab>(() => parseHash());
+  const [activeTab, setActiveTab] = useState<AppTab>(() => isAdminSubdomain ? 'admin' : parseHash());
   const [currentRole, setCurrentRole] = useState<UserRole>('customer');
   const [authRole, setAuthRole] = useState<UserRole>('customer');
   const [staffEmail, setStaffEmail] = useState<string | null>(null);
@@ -167,6 +169,10 @@ export default function App() {
     const applyGuard = () => {
       const target = parseHash();
       const { isAuthenticated, isStaff } = authGuardRef.current;
+      if (isAdminSubdomain) {
+        setActiveTab('admin');
+        return;
+      }
       if ((target === 'admin' && !isStaff) || (target === 'garage' && !isAuthenticated)) {
         if (window.location.hash !== TAB_TO_HASH.home) {
           history.replaceState(null, '', TAB_TO_HASH.home);
@@ -482,6 +488,10 @@ export default function App() {
   };
 
   const handleLogin = async (role: UserRole, email?: string) => {
+    if ((isAdminSubdomain && role !== 'admin') || (!isAdminSubdomain && role === 'admin')) {
+      return;
+    }
+
     if (role === 'customer' && email) {
       const account = authUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (account) {
@@ -828,12 +838,25 @@ export default function App() {
   };
 
   // Site is fully public. Login is only an optional overlay for My Garage / Admin.
+  if (isAdminSubdomain && (!isAuthenticated || currentRole !== 'admin')) {
+    return (
+      <LoginPage
+        customerAccounts={authUsers}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        allowedStaffRoles={['admin']}
+        adminOnly
+      />
+    );
+  }
+
   if (loginPortal) {
     return (
       <LoginPage
         customerAccounts={authUsers}
         onLogin={handleLogin}
         onRegister={handleRegister}
+        allowedStaffRoles={['technician', 'sales']}
         onClose={() => setLoginPortal(null)}
       />
     );
@@ -1084,7 +1107,6 @@ export default function App() {
           <AdminPortal
             currentRole={currentRole}
             authRole={authRole}
-            setRole={setCurrentRole}
             staffEmail={staffEmail}
             appointments={appointments}
             onUpdateAppointment={(updated) => {
