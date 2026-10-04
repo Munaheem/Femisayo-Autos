@@ -7,7 +7,6 @@ import {
   Mail,
   ShieldCheck,
   LogIn,
-  KeyRound,
   UserCog,
   UserPlus,
   Phone,
@@ -55,6 +54,8 @@ const STAFF_ROLES: Exclude<UserRole, 'customer'>[] = [
   'sales',
 ];
 
+const REMEMBERED_LOGIN_EMAIL_KEY = 'femisayoRememberedLoginEmail';
+
 const ROLE_META: Record<
   UserRole,
   { label: string; desc: string; color: string }
@@ -94,13 +95,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [staffRole, setStaffRole] =
     useState<Exclude<UserRole, 'customer'>>(staffRoles[0] ?? 'admin');
-  const [email, setEmail] = useState('');
+  const [rememberedEmail] = useState(() => {
+    try {
+      return window.localStorage.getItem(REMEMBERED_LOGIN_EMAIL_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(Boolean(rememberedEmail));
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [error, setError] = useState('');
-  const [showCreds, setShowCreds] = useState(false);
 
   const activeRole: UserRole =
     portal === 'customer' ? 'customer' : staffRole;
+
+  const saveRememberedEmail = () => {
+    try {
+      if (rememberMe) {
+        window.localStorage.setItem(REMEMBERED_LOGIN_EMAIL_KEY, email.trim());
+      } else {
+        window.localStorage.removeItem(REMEMBERED_LOGIN_EMAIL_KEY);
+      }
+    } catch {
+      // Remember me is optional when browser storage is unavailable.
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,6 +135,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     if (backendUser) {
       setError('');
+      saveRememberedEmail();
 
       if (backendUser.token) {
         api.authToken.set(backendUser.token);
@@ -138,6 +160,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       if (account) {
         setError('');
+        saveRememberedEmail();
         onLogin('customer', account.email);
       } else {
         setError(
@@ -152,10 +175,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         password === expected.password
       ) {
         setError('');
+        saveRememberedEmail();
         onLogin(staffRole, STAFF_USERS[staffRole].email);
       } else {
         setError(
-          `Invalid credentials for ${ROLE_META[staffRole].label}. Use the demo credentials below.`
+          `Invalid credentials for ${ROLE_META[staffRole].label}. Check your email and password, then try again.`
         );
       }
     }
@@ -241,12 +265,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     };
 
     onRegister(user);
-  };
-
-  const fillDemo = (user: AuthUser) => {
-    setEmail(user.email);
-    setPassword(user.password);
-    setError('');
   };
 
   const inputClass = (icon: boolean) =>
@@ -559,6 +577,42 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between gap-3 text-xs">
+                  <label className="inline-flex items-center gap-2 text-zinc-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(event) => setRememberMe(event.target.checked)}
+                      className="h-4 w-4 accent-red-600"
+                    />
+                    Remember me
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPasswordOpen((open) => !open)}
+                    aria-expanded={isForgotPasswordOpen}
+                    className="font-semibold text-red-400 hover:text-red-300"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                {isForgotPasswordOpen && (
+                  <div className="space-y-2 rounded-lg border border-zinc-700 bg-zinc-950 p-3">
+                    <p className="text-xs text-zinc-300">
+                      Password reset requests are handled by support. Include the email address on your account.
+                    </p>
+                    <a
+                      href={`https://wa.me/2348023179860?text=${encodeURIComponent(`Hi, I need help resetting my ${ROLE_META[activeRole].label.toLowerCase()} account password${email.trim() ? ` for ${email.trim()}` : ''}.`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex text-xs font-bold text-red-400 hover:text-red-300"
+                    >
+                      Contact support on WhatsApp
+                    </a>
+                  </div>
+                )}
+
                 {error && (
                   <p className="text-xs text-red-400 font-semibold bg-red-950/40 border border-red-500/30 rounded-lg px-3 py-2">
                     {error}
@@ -587,70 +641,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   </button>
                 )}
 
-                {/* Demo credentials helper */}
-                <div className="border-t border-zinc-800 pt-4 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreds(!showCreds)}
-                    className="w-full text-[11px] text-zinc-500 hover:text-zinc-300 font-semibold flex items-center justify-center gap-1.5"
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    {showCreds ? 'Hide' : 'Show'} Demo Credentials
-                  </button>
-
-                  {showCreds && (
-                    <div className="space-y-1.5">
-                      {portal === 'customer' ? (
-                        customerAccounts.map((account) => (
-                          <button
-                            key={account.email}
-                            type="button"
-                            onClick={() => fillDemo(account)}
-                            className="w-full flex items-center justify-between gap-2 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-left hover:border-red-500/40 transition-colors"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-[11px] font-bold text-zinc-200 truncate">
-                                {account.name}
-                              </p>
-                              <p className="text-[10px] font-mono text-zinc-500 truncate">
-                                {account.email} / {account.password}
-                              </p>
-                            </div>
-                            <span className="text-[10px] text-red-400 font-semibold shrink-0">
-                              Auto-fill
-                            </span>
-                          </button>
-                        ))
-                      ) : (
-                        staffRoles.map((role) => (
-                          <button
-                            key={role}
-                            type="button"
-                            onClick={() => {
-                              setStaffRole(role);
-                              setEmail(STAFF_USERS[role].email);
-                              setPassword(STAFF_USERS[role].password);
-                              setError('');
-                            }}
-                            className="w-full flex items-center justify-between gap-2 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-left hover:border-red-500/40 transition-colors"
-                          >
-                            <div>
-                              <p className="text-[11px] font-bold text-zinc-200 capitalize">
-                                {role}
-                              </p>
-                              <p className="text-[10px] font-mono text-zinc-500">
-                                {STAFF_USERS[role].email} / {STAFF_USERS[role].password}
-                              </p>
-                            </div>
-                            <span className="text-[10px] text-red-400 font-semibold shrink-0">
-                              Auto-fill
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
               </form>
             )}
           </div>
