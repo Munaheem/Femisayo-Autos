@@ -379,7 +379,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
 
           <div className="technician-jobs-table-wrapper rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-            <table className="w-full min-w-[1150px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table technician-jobs-table">
+            <table className="w-full min-w-287.5 text-left text-xs text-zinc-300 whitespace-nowrap crud-table technician-jobs-table">
               <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                 <tr>
                   <th className="px-4 py-3.5">ID / Date</th>
@@ -448,7 +448,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         </td>
 
                         <td data-label="Notes" className="px-4 py-3 text-zinc-400">
-                          <div className="min-w-[220px] max-w-[320px] whitespace-normal break-words leading-relaxed">
+                          <div className="min-w-55 max-w-[320px] whitespace-normal wrap-break-word leading-relaxed">
                             {apt.technicianNotes || '—'}
                           </div>
                         </td>
@@ -941,7 +941,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
           {/* Appointments Table */}
           <div className={`${isSalesView ? 'sales-appointments-table-wrapper' : 'admin-appointments-table-wrapper'} rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl`}>
-            <table className={`w-full min-w-[1300px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table ${isSalesView ? 'sales-appointments-table' : 'admin-appointments-table'}`}>
+            <table className={`w-full min-w-325 text-left text-xs text-zinc-300 whitespace-nowrap crud-table ${isSalesView ? 'sales-appointments-table' : 'admin-appointments-table'}`}>
               <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                 <tr>
                   <th className="px-4 py-3.5">ID / Date</th>
@@ -1139,7 +1139,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           {/* Parts Subtab CRUD Table */}
           {inventorySubTab === 'parts' && (
             <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-              <table className="w-full min-w-[950px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
+              <table className="w-full min-w-237.5 text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
                 <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                   <tr>
                     <th className="px-4 py-3.5">Part Details</th>
@@ -1215,7 +1215,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           {/* Vehicles Subtab CRUD Table */}
           {inventorySubTab === 'vehicles' && (
             <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-x-auto shadow-xl">
-              <table className="w-full min-w-[1100px] text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
+              <table className="w-full min-w-275 text-left text-xs text-zinc-300 whitespace-nowrap crud-table">
                 <thead className="bg-zinc-950 text-zinc-400 uppercase font-mono text-[10px] border-b border-zinc-800">
                   <tr>
                     <th className="px-4 py-3.5">Vehicle</th>
@@ -1478,7 +1478,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             Collapse
                           </button>
                         </div>
-                        <div className="min-w-[680px]">
+                        <div className="min-w-170">
                           <div className="grid grid-cols-1 gap-6">
                             {/* Purchases (Orders) */}
                             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-5">

@@ -185,8 +185,32 @@ export const api = {
   },
 
   auth: {
-    login: (req: LoginRequest): Promise<LoginResponse | null> =>
-      post<LoginResponse>('/api/v1/auth/login', req),
+    login: async (req: LoginRequest): Promise<LoginResponse | null> => {
+  const response = await post<{
+    role?: UserRole;
+    user?: AuthUser;
+    token?: string;
+    data?: {
+      role?: UserRole;
+      user?: AuthUser;
+      token?: string;
+    };
+  }>('/api/v1/auth/login', req);
+
+  if (!response) return null;
+
+  const payload = response.data ?? response;
+  const user = payload.user as (AuthUser & { role?: UserRole }) | undefined;
+  const role = payload.role ?? user?.role;
+
+  if (!role) return null;
+
+  return {
+    role,
+    user,
+    token: payload.token,
+  };
+},
 
     register: (req: RegisterRequest): Promise<LoginResponse | null> =>
       post<LoginResponse>('/api/v1/auth/register', req)

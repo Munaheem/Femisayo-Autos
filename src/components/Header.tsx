@@ -126,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-base sm:text-xl font-black tracking-tight text-white font-mono">FEMISAYO</span>
                 <span className="text-base sm:text-xl font-black text-red-500 font-mono">AUTOS</span>
               </div>
-              <p className="text-[9px] sm:text-[10px] tracking-wider text-zinc-400 uppercase font-semibold truncate max-w-[170px] xs:max-w-[240px] sm:max-w-none">
+              <p className="text-[9px] sm:text-[10px] tracking-wider text-zinc-400 uppercase font-semibold truncate max-w-42.5 xs:max-w-[240px] sm:max-w-none">
                 Auto Repair Shop • Lekki, Lagos
               </p>
             </div>

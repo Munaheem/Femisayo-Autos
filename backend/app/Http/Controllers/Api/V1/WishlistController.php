@@ -43,6 +43,7 @@ class WishlistController extends Controller
 
     public function update(Request $request, int $customerId)
     {   
+        $user = $request->user();
         $customer = Customer::find($customerId);
 
         if (! $customer) {

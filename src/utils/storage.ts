@@ -7,6 +7,7 @@ import {
   PushNotification, 
   ServiceItem, 
   Technician, 
+  UserRole,
   VehicleItem 
 } from '../types';
 
@@ -1897,6 +1898,17 @@ export const saveAuthUsers = (users: AuthUser[]) => saveToStorage('apex_auth_use
 // Set by src/services/api.ts when the backend issues a token at login/register.
 export const loadAuthToken = () => loadFromStorage<string | null>('apex_auth_token', null);
 export const saveAuthToken = (token: string | null) => saveToStorage('apex_auth_token', token);
+export interface PersistedAuthSession {
+  role: UserRole;
+  email: string | null;
+  userId?: string;
+}
+
+export const loadAuthSession = () =>
+  loadFromStorage<PersistedAuthSession | null>('apex_auth_session', null);
+
+export const saveAuthSession = (session: PersistedAuthSession | null) =>
+  saveToStorage('apex_auth_session', session);
 
 // Per-account wishlist (persists across logout / sessions, keyed by account email)
 export const loadWishlist = (email: string) => loadFromStorage<PartItem[]>(`apex_wishlist_${email}`, []);
