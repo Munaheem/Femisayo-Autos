@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class WishlistController extends Controller
 {
-    public function index(Request $request, int $customerId)
+    public function index(Request $request, $customerId)
     {
        $user = $request->user();
 
@@ -45,7 +45,7 @@ class WishlistController extends Controller
         return PartResource::collection($parts);
     }
 
-    public function update(Request $request, int $customerId)
+    public function update(Request $request, $customerId)
     {   
         $user = $request->user();
 
