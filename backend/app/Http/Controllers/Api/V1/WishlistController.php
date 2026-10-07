@@ -12,7 +12,11 @@ class WishlistController extends Controller
 {
     public function index(Request $request, int $customerId)
     {
-        $customer = Customer::find($customerId);
+       $user = $request->user();
+
+        $customer = $user->role === 'customer'
+            ? Customer::where('user_id', $user->id)->first()
+            : Customer::find($customerId);
 
         if (! $customer) {
             return response()->json([
@@ -44,7 +48,10 @@ class WishlistController extends Controller
     public function update(Request $request, int $customerId)
     {   
         $user = $request->user();
-        $customer = Customer::find($customerId);
+
+        $customer = $user->role === 'customer'
+            ? Customer::where('user_id', $user->id)->first()
+            : Customer::find($customerId);
 
         if (! $customer) {
             return response()->json([
